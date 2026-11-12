@@ -1,3 +1,7 @@
+/**
+ * RESUMEN POR CATEGORÍAS: compara comprar una unidad de cada producto en una tienda.
+ * También presenta el promedio aritmético de las diferencias de las cinco categorías.
+ */
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Link } from "expo-router";
 import { Pressable, Text, View } from "react-native";
@@ -15,7 +19,11 @@ import {
 } from "@/store/product-comparison";
 
 export default function CategoryComparison() {
+  // Consume el catálogo actual: las modificaciones se reflejan en categorías y promedio.
   const { productos } = useCatalog();
+  // SavingsCard recibe el promedio por props. map genera un enlace por categoría.
+  // resumirCategoria calcula totales y ordena visualmente la tienda con menor total.
+  // Un empate se etiqueta como tal; el orden visual no representa una ventaja en ese caso.
   return (
     <View>
       <SavingsCard

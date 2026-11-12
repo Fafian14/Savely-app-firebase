@@ -1,3 +1,6 @@
+/**
+ * COMPARACIÓN SELECCIONADA: recibe IDs y un callback; consulta sus productos en el contexto.
+ */
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Pressable, Text, View } from "react-native";
 
@@ -14,10 +17,15 @@ export default function ProductComparison({
   onSeleccionar: (id: number) => void;
 }) {
   const { productos } = useCatalog();
+  // filter cruza selección y catálogo actual para mostrar siempre los datos vigentes.
   const elegidos = productos.filter((producto) =>
     seleccionados.includes(producto.id),
   );
+  // Sin productos no necesita dibujar contenido; return null omite este bloque.
   if (elegidos.length === 0) return null;
+  // Cada botón comunica el ID al padre mediante onSeleccionar.
+  // Con dos productos, sumarPrecios calcula la compra conjunta por tienda.
+  // No suma los ahorros individuales: compara comprar ambos en Líder frente a ambos en Unimarc.
   return (
     <View className="gap-3">
       <Text

@@ -1,3 +1,6 @@
+/**
+ * PANTALLA CATÁLOGO: ruta /products. Permite buscar, abrir detalles y acceder a crear productos.
+ */
 import { useState } from "react";
 import { Link } from "expo-router";
 import { ScrollView, Text, TextInput, View } from "react-native";
@@ -11,8 +14,13 @@ import { filtrarProductos } from "@/store/product-comparison";
 
 export default function ProductsScreen() {
   const { productos } = useCatalog();
+  // Estado local del buscador; onChangeText lo actualiza y provoca el nuevo render.
   const [busqueda, setBusqueda] = useState("");
+  // Reutiliza el mismo filtro de Comparar, con categoría Todas.
   const visibles = filtrarProductos(productos, busqueda, "Todas");
+  // map dibuja los productos y key usa el ID estable. Los componentes reutilizan imagen y precios.
+  // La ruta fija de detalle recibe el ID como parámetro; ListButton modifica la lista compartida.
+  // Si no hay coincidencias, se muestra el mensaje de lista vacía.
   return (
     <ScrollView
       keyboardShouldPersistTaps="handled"

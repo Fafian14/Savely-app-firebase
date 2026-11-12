@@ -1,3 +1,7 @@
+/**
+ * CARRITO / MI LISTA: lista persistida de IDs, con una unidad por producto.
+ * Muestra totales por tienda; no implementa cantidades configurables ni pagos.
+ */
 import { Link } from "expo-router";
 import { ScrollView, Text, View } from "react-native";
 import Header from "@/components/Header";
@@ -8,7 +12,10 @@ import { useCatalog } from "@/store/CatalogProvider";
 import { sumarPrecios } from "@/store/product-comparison";
 export default function CartScreen() {
   const { productos, lista } = useCatalog();
+  // Cruza IDs con el catálogo actual: una edición se refleja aquí sin duplicar productos.
   const elegidos = productos.filter((p) => lista.includes(p.id));
+  // Si hay productos, PriceComparison compara los totales de comprar toda la lista en cada tienda.
+  // ListButton permite quitar elementos; el mensaje vacío aparece cuando la lista no contiene productos.
   return (
     <ScrollView contentContainerClassName="pb-6">
       <View className="mx-auto w-full max-w-2xl p-4">

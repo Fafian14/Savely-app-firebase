@@ -1,3 +1,8 @@
+/**
+ * IMPLEMENTACIÓN ANTERIOR: Edición anterior con useEffect y cuatro tiendas; usa funciones de almacenamiento ya no exportadas.
+ * El grupo (stack) no añade un segmento a la URL; sus rutas pueden coincidir con app/products.
+ * Se conserva para estudiar su código. La implementación actual usa Product y CatalogProvider.
+ */
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import {
@@ -122,6 +127,8 @@ export default function EditProductScreen() {
     router.back();
   };
 
+  // JSX de la implementación anterior; sus comentarios existentes describen campos y acciones.
+  // No asumir que esta pantalla funciona con el store actual: sus importaciones requieren migración.
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.tituloHeader}>Editar Producto</Text>
@@ -141,7 +148,7 @@ export default function EditProductScreen() {
         multiline
       />
 
-      <Text style={styles.label}>URL de la Imagen (puedes cambiarla)</Text>
+      <Text style={styles.label}>URL de la Imagen</Text>
       <TextInput
         style={styles.input}
         value={rutaImagen}
@@ -196,6 +203,7 @@ export default function EditProductScreen() {
   );
 }
 
+// Estilos de React Native expresados como objetos. Esta versión anterior no usa NativeWind aquí.
 const styles = StyleSheet.create({
   container: {
     flex: 1,

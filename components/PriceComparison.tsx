@@ -1,3 +1,7 @@
+/**
+ * PRESENTACIÓN DE PRECIOS: el mismo componente recibe un producto o totales de varios.
+ * La prop total cambia las etiquetas; el cálculo sigue comparando los dos valores recibidos.
+ */
 import { Text, View } from "react-native";
 
 import type { Precios } from "@/models/Product";
@@ -10,8 +14,10 @@ export default function PriceComparison({
   precios: Precios;
   total?: boolean;
 }) {
+  // Compara los precios mediante una función pura; un empate devuelve null y ahorro cero.
   const { mejorSupermercado, ahorro } = compararPrecios(precios);
 
+  // Muestra ambos precios y su diferencia. Para totales esto supone comprar todo en una misma tienda.
   return (
     <View className="gap-3">
       <View className="flex-row flex-wrap justify-between gap-2">

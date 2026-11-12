@@ -1,5 +1,12 @@
+/**
+ * IMPLEMENTACIÓN ANTERIOR: Layout de navegación anterior. Declara Perfil y Ajustes, cuyas pantallas no están presentes.
+ * El grupo (stack) no añade un segmento a la URL; sus rutas pueden coincidir con app/products.
+ * Se conserva para estudiar su código. La implementación actual usa Product y CatalogProvider.
+ */
 import { Stack } from 'expo-router';
 const StackLayout = () => {
+  // JSX de la implementación anterior; sus comentarios existentes describen campos y acciones.
+  // No asumir que esta pantalla funciona con el store actual: sus importaciones requieren migración.
   return (
     <Stack
       screenOptions={{

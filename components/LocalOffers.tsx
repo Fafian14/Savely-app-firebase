@@ -1,3 +1,7 @@
+/**
+ * OFERTAS LOCALES REUTILIZABLES: conecta filtros, catálogo y lista con cálculos y presentación.
+ * No consulta GPS ni precios externos; radio y periodo operan sobre datos simulados.
+ */
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Link } from "expo-router";
 import { useState } from "react";
@@ -16,13 +20,19 @@ import StoreBadge from "./StoreBadge";
 
 export default function LocalOffers() {
   const { productos, lista } = useCatalog();
+  // Estado inicial: radio de 2 km, ofertas de hoy y todos los productos.
   const [filtros, setFiltros] = useState<OfferFilters>({
     radio: 2,
     periodo: "hoy",
     soloLista: false,
   });
+  // Controla qué selector está abierto: radio, periodo o ninguno.
   const [opciones, setOpciones] = useState<"radio" | "periodo" | null>(null);
+  // Deriva ofertas del catálogo y filtros; ahorroOfertas recalcula el importe del banner.
   const visibles = filtrarOfertas(productos, lista, filtros);
+  // Los botones cambian filtros creando objetos nuevos mediante spread.
+  // El banner recibe cifras por props; los productos se agrupan según su tienda de menor precio.
+  // Las condiciones muestran opciones abiertas y mensajes cuando una tienda o el resultado están vacíos.
   return (
     <View>
       <View className="mb-3 flex-row gap-1">
@@ -150,6 +160,8 @@ export default function LocalOffers() {
     </View>
   );
 }
+// Componente auxiliar de botón: recibe etiqueta, icono, selección y callback del padre.
+// El callback comunica la pulsación; aria-pressed y accessibilityState describen su estado.
 function Filter({
   label,
   icon,

@@ -1,17 +1,23 @@
-import Ionicons from "@expo/vector-icons/Ionicons";
-import { Link } from "expo-router";
-import { Pressable, ScrollView, Text, View } from "react-native";
-
+/**
+ * PANTALLA INICIO: ruta /. Combina encabezado, ofertas y resúmenes por categoría.
+ * La pantalla deriva sus valores del catálogo compartido para reflejar altas, ediciones y eliminaciones.
+ */
 import CategoryIcon from "@/components/CategoryIcon";
 import Header from "@/components/Header";
 import LocalOffers from "@/components/LocalOffers";
 import { useCatalog } from "@/store/CatalogProvider";
 import { formatearPesos, resumirCategoria } from "@/store/product-comparison";
 import { categorias } from "@/store/products.store";
-
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { Link } from "expo-router";
+import { Pressable, ScrollView, Text, View } from "react-native";
 export default function HomeScreen() {
+  // Lee el catálogo actual del contexto, no directamente la semilla de products.store.
   const { productos } = useCatalog();
 
+  // ScrollView permite desplazamiento; max-w-2xl limita el ancho en web.
+  // LocalOffers reúne filtros y banner. Las categorías usan map y key para generar enlaces únicos.
+  // resumirCategoria calcula el ahorro de comprar la categoría completa en una tienda.
   return (
     <ScrollView className="flex-1" contentContainerClassName="pb-6">
       <View className="mx-auto w-full max-w-2xl px-4 pt-4">
@@ -22,6 +28,12 @@ export default function HomeScreen() {
           className="mt-4 rounded-xl bg-teal-50 p-4 text-center text-teal-800"
         >
           Gestionar productos
+        </Link>
+        <Link
+          href="/firebase"
+          className="mt-3 rounded-xl bg-teal-50 p-4 text-center text-teal-800"
+        >
+          Probar conexión a Firebase
         </Link>
         <View className="mb-3 mt-5 flex-row items-center justify-between gap-2">
           <Text
@@ -79,3 +91,4 @@ export default function HomeScreen() {
     </ScrollView>
   );
 }
+

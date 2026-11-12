@@ -1,8 +1,13 @@
+/**
+ * NAVEGACIÓN INFERIOR PERSONALIZADA: cinco enlaces para Inicio, Comparar, Ofertas, Carrito y Ruta.
+ * Se dibuja fuera del Stack en el layout raíz para mantenerse disponible entre pantallas.
+ */
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Link, usePathname } from "expo-router";
 import { Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+// Datos de cada enlace e iconos activo/inactivo. as const conserva los literales de rutas e iconos.
 const secciones = [
   { nombre: "Inicio", ruta: "/", icono: "home-outline", activo: "home" },
   {
@@ -22,9 +27,14 @@ const secciones = [
 ] as const;
 
 export default function BottomNavigation() {
+  // Consulta la ruta actual para resaltar la sección correspondiente.
   const pathname = usePathname();
+  // Obtiene el espacio inferior reservado por el dispositivo para evitar solapamientos.
   const insets = useSafeAreaInsets();
 
+  // map genera enlaces. replace sustituye la entrada actual en el historial al cambiar de sección.
+  // asChild entrega el comportamiento del enlace al Pressable. Los estados accesibles anuncian selección.
+  // Los detalles de categorías pertenecen a Comparar y los productos se agrupan visualmente con Inicio.
   return (
     <View
       className="rounded-t-3xl border-t border-slate-100 bg-white"

@@ -1,3 +1,8 @@
+/**
+ * MODELO ANTERIOR: clase usada por las pantallas archivadas en legacy/app-stack.
+ * No equivale al Product actual: usa titulo, detalle, rutaImagen y un arreglo de cuatro supermercados.
+ * Las pantallas antiguas conservan referencias a funciones de store que ya no existen.
+ */
 // Definimos la estructura TypeScript para los precios de cada supermercado
 export interface SupermercadoPrecio {
   id: string; // Identificador único de la oferta/precio
@@ -14,6 +19,7 @@ export class Producto {
   rutaImagen: string; // URL de la imagen del producto
   precios: SupermercadoPrecio[]; // Listado de precios por supermercado
 
+  // Una clase genera instancias con new Producto(...). Sus argumentos inicializan los atributos.
   constructor(
     id: number,
     titulo: string,

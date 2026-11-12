@@ -1,3 +1,7 @@
+/**
+ * BANNER DE OFERTAS: presenta ahorro, cantidad y periodo recibidos desde LocalOffers.
+ * No calcula el ahorro: separa la presentación de la lógica de ofertas.
+ */
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useState } from "react";
 import { Image, Pressable, Text, View } from "react-native";
@@ -12,7 +16,11 @@ export default function SavingsBanner({
   cantidad: number;
   periodo: "hoy" | "semana";
 }) {
+  // Estado local que abre o cierra la explicación del importe.
   const [info, setInfo] = useState(false);
+  // El botón cambia info con una actualización funcional. El bloque opcional explica la fórmula.
+  // La suma representa diferencias entre tiendas para productos visibles, no descuentos históricos.
+  // La imagen es local y el importe adapta su tamaño para caber en el espacio disponible.
   return (
     <View className="overflow-hidden rounded-2xl bg-cyan-700 p-4">
       <View className="flex-row items-center gap-1">

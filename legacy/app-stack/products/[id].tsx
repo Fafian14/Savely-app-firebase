@@ -1,3 +1,8 @@
+/**
+ * IMPLEMENTACIÓN ANTERIOR: Detalle anterior con Producto, precios en arreglo y funciones de store ya no exportadas.
+ * El grupo (stack) no añade un segmento a la URL; sus rutas pueden coincidir con app/products.
+ * Se conserva para estudiar su código. La implementación actual usa Product y CatalogProvider.
+ */
 import { useCallback, useState } from "react";
 import {
   Alert,
@@ -26,6 +31,8 @@ export default function ProductDetailScreen() {
   const [producto, setProducto] = useState<Producto | undefined>();
 
   // Recargamos la información del producto cada vez que la pantalla toma foco (por si venimos de editar)
+  // En la versión anterior se recargaban datos al enfocar la pantalla.
+  // useCallback conserva la función según sus dependencias; el catálogo actual utiliza Context.
   useFocusEffect(
     useCallback(() => {
       cargarProducto();
@@ -175,6 +182,7 @@ export default function ProductDetailScreen() {
   );
 }
 
+// Estilos de React Native expresados como objetos. Esta versión anterior no usa NativeWind aquí.
 const styles = StyleSheet.create({
   container: {
     flex: 1,

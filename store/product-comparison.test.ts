@@ -1,3 +1,8 @@
+/**
+ * PRUEBAS DE CÁLCULOS: comprueba datos iniciales, empates, totales, promedio, selección y búsqueda.
+ * Los valores esperados son ejemplos útiles para explicar las fórmulas en una evaluación oral.
+ * El nombre antiguo de un test menciona Inicio, pero calcularAhorroCompra no alimenta el banner actual.
+ */
 import assert from "node:assert/strict";
 import test from "node:test";
 

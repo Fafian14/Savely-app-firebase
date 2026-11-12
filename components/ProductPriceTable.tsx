@@ -1,3 +1,7 @@
+/**
+ * TABLA DE PRECIOS: presenta productos, precios por tienda y valores normalizados por unidad.
+ * Puede reutilizarse con selección interactiva o sin ella según la prop onSeleccionar.
+ */
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Link } from "expo-router";
 import { Pressable, Text, View, useWindowDimensions } from "react-native";
@@ -12,6 +16,7 @@ import {
   precioPorUnidad,
 } from "@/store/product-comparison";
 
+// La selección y el callback son opcionales; el listado de productos siempre es necesario.
 interface Props {
   productos: Product[];
   seleccionados?: number[];
@@ -23,7 +28,10 @@ export default function ProductPriceTable({
   seleccionados = [],
   onSeleccionar,
 }: Props) {
+  // Hook de dimensiones: adapta la disposición cuando la ventana tiene menos de 380 de ancho.
   const compacto = useWindowDimensions().width < 380;
+  // map genera filas identificadas por ID. Se destaca el menor precio sin alterar los datos.
+  // Si existe onSeleccionar se dibuja un control de selección; los roles accesibles describen su estado.
   return (
     <View className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
       <View className="flex-row border-b border-slate-200 bg-slate-50">
@@ -40,9 +48,12 @@ export default function ProductPriceTable({
         </View>
       </View>
       {productos.map((producto) => {
+        // Cálculos derivados de cada fila: comparación y precio por kg, L o unidad.
         const comparacion = compararPrecios(producto.precios);
         const normalizado = precioPorUnidad(producto);
         const seleccionado = seleccionados.includes(producto.id);
+        // Si ya hay dos seleccionados, bloquea nuevos; permite quitar los seleccionados.
+        // La función de selección del padre aplica también este límite.
         const deshabilitado = seleccionados.length >= 2 && !seleccionado;
         return (
           <View key={producto.id} className="border-b border-slate-100">

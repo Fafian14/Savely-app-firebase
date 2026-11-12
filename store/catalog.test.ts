@@ -1,3 +1,8 @@
+/**
+ * PRUEBAS DE LÓGICA: node:test organiza casos y assert compara resultados esperados.
+ * Verifica CRUD inmutable, validaciones, lectura del JSON, precio por unidad y filtros de ofertas.
+ * No monta pantallas ni prueba directamente AsyncStorage; package.json no define un script test.
+ */
 import assert from "node:assert/strict";
 import test from "node:test";
 import { productos } from "./products.store";
@@ -11,7 +16,8 @@ import {
 import { filtrarOfertas, ahorroOfertas } from "./offers";
 import { precioPorUnidad, resumirCategoria } from "./product-comparison";
 
-const inicial: CatalogState = { productos, lista: [1, 2], siguienteId: 19 };
+// Estado de partida del test: catálogo semilla, lista de dos IDs y próximo ID 19.
+const inicial: CatalogState = { productos, lista: [1, 2], siguienteId: 19, versionImagenes: 1 };
 test("CRUD: crea, actualiza totales, elimina y limpia la lista sin mutar el catálogo", () => {
   const creado = guardarProducto(inicial, {
     ...productos[0],
@@ -38,6 +44,27 @@ test("CRUD: crea, actualiza totales, elimina y limpia la lista sin mutar el cat�
   assert.deepEqual(borrado.lista, [2]);
   assert.throws(() => guardarProducto(borrado, productos[0], 1));
   assert.equal(guardarProducto(borrado, productos[0]).productos.at(-1)?.id, 20);
+});
+
+test("imágenes: migra la manzana antigua sin perder catálogo, precios ni lista", () => {
+  const antiguo = { productos: productos.map((p) => ({ ...p, imagen: "manzana" })), lista: [1, 2], siguienteId: 19 };
+  const migrado = leerCatalogo(JSON.stringify(antiguo));
+  assert.deepEqual(migrado.productos.map((p) => p.imagen), productos.map((p) => p.imagen));
+  assert.deepEqual(migrado.lista, antiguo.lista);
+  assert.equal(migrado.siguienteId, 19);
+  assert.deepEqual(migrado.productos.map(({ imagen, ...p }) => p), antiguo.productos.map(({ imagen, ...p }) => p));
+  assert.equal(migrado.versionImagenes, 1);
+});
+
+test("imágenes: conserva una elección manual al editar y recargar", () => {
+  const editado = guardarProducto(inicial, { ...productos[0], imagen: "manzana" }, 1);
+  assert.equal(leerCatalogo(JSON.stringify(editado)).productos[0].imagen, "manzana");
+  assert.throws(() => leerCatalogo(JSON.stringify({ ...inicial, productos: [{ ...productos[0], imagen: "no-existe" }] })));
+});
+
+test("imágenes: crear sin selección sugiere la imagen por nombre", () => {
+  const { imagen, ...input } = productos[0];
+  assert.equal(guardarProducto(inicial, input).productos.at(-1)?.imagen, "leche");
 });
 test("validaciones: campos vacíos, precios negativos o decimales y contenido inválido", () => {
   assert.equal(validarProducto(productos[0]), null);

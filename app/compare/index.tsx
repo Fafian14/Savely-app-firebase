@@ -1,3 +1,7 @@
+/**
+ * PANTALLA COMPARAR: búsqueda por nombre, filtro por categoría y selección de hasta dos productos.
+ * La selección y los filtros son estado temporal; el catálogo proviene del contexto.
+ */
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Link, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
@@ -19,28 +23,37 @@ import { categorias } from "@/store/products.store";
 
 export default function CompareScreen() {
   const { productos } = useCatalog();
+  // Parámetro opcional que permite entrar desde el detalle con un producto preseleccionado.
   const { productoId } = useLocalSearchParams<{
     productoId?: string | string[];
   }>();
+  // Comprueba que el parámetro sea un string y corresponda a un producto existente.
   const id =
     typeof productoId === "string"
       ? productos.find((p) => String(p.id) === productoId)?.id
       : undefined;
+  // Cambiar esta key remonta el componente para reiniciar su estado según el producto inicial.
   return <ComparisonContent key={id ?? "sin-producto"} productoInicial={id} />;
 }
 
+// Componente con estado local separado de la lectura del parámetro de ruta.
 function ComparisonContent({ productoInicial }: { productoInicial?: number }) {
   const { productos } = useCatalog();
+  // Campos controlados: el texto, categoría y IDs seleccionados viven en useState.
   const [busqueda, setBusqueda] = useState("");
   const [categoria, setCategoria] = useState<Categoria | "Todas">("Todas");
   const [idsSeleccionados, setSeleccionados] = useState<number[]>(
     productoInicial ? [productoInicial] : [],
   );
+  // Ignora IDs de productos eliminados para no mostrar selecciones obsoletas.
   const seleccionados = idsSeleccionados.filter((id) =>
     productos.some((p) => p.id === id),
   );
+  // Resultados derivados: se calculan a partir del catálogo, búsqueda y categoría sin duplicar estado.
   const filtrados = filtrarProductos(productos, busqueda, categoria);
+  // Compara el total de todos los resultados filtrados; la comparación elegida aparece aparte.
   const mejor = compararPrecios(sumarPrecios(filtrados)).mejorSupermercado;
+  // Actualización funcional: recibe los IDs anteriores, limpia borrados y aplica el límite de dos.
   function seleccionar(id: number) {
     setSeleccionados((actuales) =>
       alternarSeleccion(
@@ -50,6 +63,9 @@ function ComparisonContent({ productoInicial }: { productoInicial?: number }) {
     );
   }
 
+  // TextInput conecta value y onChangeText. Los filtros cambian el estado con onPress.
+  // ProductComparison muestra los seleccionados y ProductPriceTable ofrece botones para elegirlos.
+  // Los ternarios y && muestran mensajes, selección y estados vacíos según los resultados.
   return (
     <ScrollView
       className="flex-1"

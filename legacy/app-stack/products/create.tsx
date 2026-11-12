@@ -1,3 +1,8 @@
+/**
+ * IMPLEMENTACIÓN ANTERIOR: Alta anterior con cuatro precios y URL de imagen; llama agregarProducto, que ya no se exporta.
+ * El grupo (stack) no añade un segmento a la URL; sus rutas pueden coincidir con app/products.
+ * Se conserva para estudiar su código. La implementación actual usa Product y CatalogProvider.
+ */
 import { router } from "expo-router";
 import { useState } from "react";
 import {
@@ -83,6 +88,8 @@ export default function CreateProductScreen() {
     router.back(); // Volvemos a la pantalla anterior (Lista)
   };
 
+  // JSX de la implementación anterior; sus comentarios existentes describen campos y acciones.
+  // No asumir que esta pantalla funciona con el store actual: sus importaciones requieren migración.
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.tituloHeader}>Agregar Nuevo Producto</Text>
@@ -111,9 +118,6 @@ export default function CreateProductScreen() {
       <TextInput
         style={styles.input}
         placeholder="https://ejemplo.com/imagen.jpg"
-        autoCapitalize="none"
-        autoCorrect={false}
-        keyboardType="url"
         value={rutaImagen}
         onChangeText={setRutaImagen}
       />
@@ -173,6 +177,7 @@ export default function CreateProductScreen() {
   );
 }
 
+// Estilos de React Native expresados como objetos. Esta versión anterior no usa NativeWind aquí.
 const styles = StyleSheet.create({
   container: {
     flex: 1,

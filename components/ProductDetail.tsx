@@ -1,3 +1,7 @@
+/**
+ * DETALLE Y ACCIONES: busca un producto por el ID de la URL en el catálogo compartido.
+ * Reutiliza imagen, metadatos, precios y botón de lista; permite editar, eliminar y comparar.
+ */
 import { Link, router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import ProductMetadata from "@/components/ProductMetadata";
@@ -12,10 +16,14 @@ import PriceComparison from "@/components/PriceComparison";
 export default function ProductDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { productos, eliminar } = useCatalog();
+  // find devuelve el producto o undefined; el JSX maneja ambas situaciones.
   const producto = productos.find((p) => String(p.id) === id);
+  // La confirmación de borrado, el estado de operación y el error son estado local de la pantalla.
   const [confirmar, setConfirmar] = useState(false);
   const [ocupado, setOcupado] = useState(false);
   const [error, setError] = useState("");
+  // Espera la eliminación persistida; catalog.ts también quita el ID de la lista.
+  // Solo después vuelve al catálogo; si falla muestra error y finally libera el estado ocupado.
   async function borrar() {
     if (!producto) return;
     setOcupado(true);
@@ -30,11 +38,14 @@ export default function ProductDetailScreen() {
     }
   }
 
+  // Vuelve por historial o utiliza Inicio como respaldo para una apertura directa.
   function volver() {
     if (router.canGoBack()) router.back();
     else router.replace("/");
   }
 
+  // El ternario muestra el detalle o Producto no encontrado. confirmar controla la confirmación visible.
+  // Editar usa /products/form?id=ID y Comparar envía productoId para iniciar la selección.
   return (
     <ScrollView className="flex-1" contentContainerClassName="pb-6">
       <View className="mx-auto w-full max-w-xl px-5 pt-6">

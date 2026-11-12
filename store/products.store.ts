@@ -1,5 +1,11 @@
+/**
+ * DATOS INICIALES: catálogo ficticio con 18 productos y precios en pesos chilenos.
+ * CatalogProvider usa esta semilla solo si no hay un catálogo local guardado.
+ * Este archivo exporta datos; no es Redux ni ofrece las funciones del CRUD antiguo.
+ */
 import type { Categoria, Product } from "../models/Product";
 
+// Orden compartido por filtros, categorías, validaciones y resúmenes.
 export const categorias: Categoria[] = [
   "Alimentos",
   "Bebidas",
@@ -8,8 +14,10 @@ export const categorias: Categoria[] = [
   "Hogar",
 ];
 
+// Cada producto usa una clave distinta que ProductImage resuelve a su PNG transparente.
 
-
+// Cada objeto cumple Product. Hay 6 Alimentos y 3 productos de cada categoría restante.
+// Los IDs iniciales son 1 a 18; el provider calcula el siguienteId a partir del máximo.
 export const productos: Product[] = [
   {
     id: 1,
@@ -21,7 +29,7 @@ export const productos: Product[] = [
     descripcion: "Leche entera de 1 litro.",
     categoria: "Alimentos",
     precios: { lider: 990, unimarc: 1090 },
-    imagen: "https://images.unsplash.com/photo-1550583724-b2692b85b150?w=800",
+    imagen: "leche",
   },
   {
     id: 2,
@@ -33,7 +41,7 @@ export const productos: Product[] = [
     descripcion: "Manzanas rojas frescas. Precio por kilogramo.",
     categoria: "Alimentos",
     precios: { lider: 1490, unimarc: 1690 },
-    imagen: "https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=800",
+    imagen: "manzana",
   },
   {
     id: 3,
@@ -45,7 +53,7 @@ export const productos: Product[] = [
     descripcion: "Plátanos frescos. Precio por kilogramo.",
     categoria: "Alimentos",
     precios: { lider: 1290, unimarc: 1190 },
-    imagen: "https://images.unsplash.com/photo-1571771894821-ce9b6c2b6b6f?w=800",
+    imagen: "platano",
   },
   {
     id: 4,
@@ -57,7 +65,7 @@ export const productos: Product[] = [
     descripcion: "Arroz de grano largo en bolsa de 1 kilogramo.",
     categoria: "Alimentos",
     precios: { lider: 1590, unimarc: 1390 },
-    imagen: "https://images.unsplash.com/photo-1586201375761-83865001e31c?w=800",
+    imagen: "arroz",
   },
   {
     id: 5,
@@ -69,7 +77,7 @@ export const productos: Product[] = [
     descripcion: "Detergente líquido de 1,5 litros.",
     categoria: "Limpieza",
     precios: { lider: 4290, unimarc: 3990 },
-    imagen: "https://images.unsplash.com/photo-1583947215259-38e31be8751f?w=800",
+    imagen: "detergente",
   },
   {
     id: 6,
@@ -81,7 +89,7 @@ export const productos: Product[] = [
     descripcion: "Bebida gaseosa sabor naranja de 1,5 litros.",
     categoria: "Bebidas",
     precios: { lider: 1790, unimarc: 1590 },
-    imagen: "https://images.unsplash.com/photo-1625772299848-391b6a87d7b3?w=800",
+    imagen: "bebida",
   },
   {
     id: 7,
@@ -93,7 +101,7 @@ export const productos: Product[] = [
     descripcion: "Fideos espagueti en paquete de 400 gramos.",
     categoria: "Alimentos",
     precios: { lider: 890, unimarc: 990 },
-    imagen: "https://images.unsplash.com/photo-1551462147-ff29053bfc14?w=800",
+    imagen: "fideos",
   },
   {
     id: 8,
@@ -105,7 +113,7 @@ export const productos: Product[] = [
     descripcion: "Caja de 12 huevos.",
     categoria: "Alimentos",
     precios: { lider: 3290, unimarc: 3490 },
-    imagen: "https://images.unsplash.com/photo-1582722872445-44dc5f7e3c8f?w=800",
+    imagen: "huevos",
   },
   {
     id: 9,
@@ -117,7 +125,7 @@ export const productos: Product[] = [
     descripcion: "Agua mineral sin gas de 1,5 litros.",
     categoria: "Bebidas",
     precios: { lider: 790, unimarc: 890 },
-    imagen: "https://images.unsplash.com/photo-1548839140-29a749e1cf4d?w=800",
+    imagen: "agua",
   },
   {
     id: 10,
@@ -129,7 +137,7 @@ export const productos: Product[] = [
     descripcion: "Jugo de naranja en caja de 1 litro.",
     categoria: "Bebidas",
     precios: { lider: 1290, unimarc: 1490 },
-    imagen: "https://images.unsplash.com/photo-1600271886742-f049cd451bba?w=800",
+    imagen: "jugo",
   },
   {
     id: 11,
@@ -141,7 +149,7 @@ export const productos: Product[] = [
     descripcion: "Lavalozas líquido de 750 mililitros.",
     categoria: "Limpieza",
     precios: { lider: 1490, unimarc: 1690 },
-    imagen: "https://images.unsplash.com/photo-1610557892470-a56c1f4f5e4a?w=800",
+    imagen: "lavalozas",
   },
   {
     id: 12,
@@ -153,7 +161,7 @@ export const productos: Product[] = [
     descripcion: "Limpiador multiuso de 900 mililitros.",
     categoria: "Limpieza",
     precios: { lider: 1990, unimarc: 1790 },
-    imagen: "https://images.unsplash.com/photo-1600185365483-26d7a4cc7519?w=800",
+    imagen: "limpiador",
   },
   {
     id: 13,
@@ -165,7 +173,7 @@ export const productos: Product[] = [
     descripcion: "Champú de uso diario de 400 mililitros.",
     categoria: "Higiene",
     precios: { lider: 2990, unimarc: 3290 },
-    imagen: "https://images.unsplash.com/photo-1556228578-8c89e6adf883?w=800",
+    imagen: "champu",
   },
   {
     id: 14,
@@ -177,7 +185,7 @@ export const productos: Product[] = [
     descripcion: "Paquete de 3 jabones de tocador.",
     categoria: "Higiene",
     precios: { lider: 1690, unimarc: 1490 },
-    imagen: "https://images.unsplash.com/photo-1607006344380-b6775a0824f7?w=800",
+    imagen: "jabon",
   },
   {
     id: 15,
@@ -189,7 +197,7 @@ export const productos: Product[] = [
     descripcion: "Pasta dental de 90 gramos.",
     categoria: "Higiene",
     precios: { lider: 1990, unimarc: 2290 },
-    imagen: "https://images.unsplash.com/photo-1559591937-e3b4a1b7b8b1?w=800",
+    imagen: "pasta-dental",
   },
   {
     id: 16,
@@ -201,7 +209,7 @@ export const productos: Product[] = [
     descripcion: "Paquete de 2 rollos de papel absorbente.",
     categoria: "Hogar",
     precios: { lider: 2490, unimarc: 2290 },
-    imagen: "https://images.unsplash.com/photo-1584556812952-905ffd0c611a?w=800",
+    imagen: "papel-absorbente",
   },
   {
     id: 17,
@@ -213,7 +221,7 @@ export const productos: Product[] = [
     descripcion: "Paquete de 10 bolsas de 70 litros.",
     categoria: "Hogar",
     precios: { lider: 1390, unimarc: 1590 },
-    imagen: "https://images.unsplash.com/photo-1604187351574-c75ca79f5807?w=800",
+    imagen: "bolsas-basura",
   },
   {
     id: 18,
@@ -225,6 +233,6 @@ export const productos: Product[] = [
     descripcion: "Paquete de 3 esponjas para cocina.",
     categoria: "Hogar",
     precios: { lider: 990, unimarc: 890 },
-    imagen: "https://images.unsplash.com/photo-1583947581924-a6d9c2d9d5c7?w=800",
+    imagen: "esponjas",
   },
 ];

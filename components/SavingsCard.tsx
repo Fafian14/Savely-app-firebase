@@ -1,7 +1,11 @@
+/**
+ * TARJETA DE AHORRO REUTILIZABLE: recibe título, importe, descripción y estadísticas opcionales.
+ */
 import { Image, Text, View } from "react-native";
 
 import { formatearPesos } from "@/store/product-comparison";
 
+// El signo ? permite omitir estadísticas; los demás datos son obligatorios.
 interface Props {
   titulo: string;
   ahorro: number;
@@ -15,6 +19,8 @@ export default function SavingsCard({
   descripcion,
   estadisticas,
 }: Props) {
+  // Formatea el importe en pesos. Si existen estadísticas, map genera una columna por etiqueta.
+  // La tarjeta muestra datos del padre; no consulta ni modifica el catálogo.
   return (
     <View className="overflow-hidden rounded-3xl bg-cyan-700 p-4 shadow-sm">
       <Text className="text-base font-work-medium text-white">{titulo}</Text>

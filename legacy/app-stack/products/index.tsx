@@ -1,3 +1,8 @@
+/**
+ * IMPLEMENTACIÓN ANTERIOR: Listado anterior con FlatList, búsqueda y cuatro tiendas; llama obtenerProductos, que ya no se exporta.
+ * El grupo (stack) no añade un segmento a la URL; sus rutas pueden coincidir con app/products.
+ * Se conserva para estudiar su código. La implementación actual usa Product y CatalogProvider.
+ */
 import { useCallback, useState } from "react";
 import {
   FlatList,
@@ -27,6 +32,8 @@ export default function ProductsScreen() {
   const [superSeleccionado, setSuperSeleccionado] = useState<SuperFiltro>("Todos");
 
   // Recarga los datos cuando la pantalla toma foco
+  // En la versión anterior se recargaban datos al enfocar la pantalla.
+  // useCallback conserva la función según sus dependencias; el catálogo actual utiliza Context.
   useFocusEffect(
     useCallback(() => {
       cargarProductos();
@@ -184,6 +191,7 @@ export default function ProductsScreen() {
   );
 }
 
+// Estilos de React Native expresados como objetos. Esta versión anterior no usa NativeWind aquí.
 const styles = StyleSheet.create({
   container: {
     flex: 1,

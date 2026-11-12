@@ -1,3 +1,7 @@
+/**
+ * ENCABEZADO REUTILIZABLE: marca, título opcional y botón opcional para volver.
+ * Las props permiten adaptar la presentación sin duplicar el componente en cada pantalla.
+ */
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { router, type Href } from "expo-router";
 import { Image, Pressable, Text, View } from "react-native";
@@ -9,10 +13,13 @@ export default function Header({
   titulo?: string;
   volverA?: Href;
 }) {
+  // Usa el historial si existe; si se abrió por enlace directo, reemplaza por la ruta de respaldo.
   function volver() {
     if (router.canGoBack()) router.back();
     else router.replace(volverA ?? "/");
   }
+  // La imagen usa require para incluir un recurso local. titulo y volverA controlan bloques opcionales.
+  // Los atributos accessibilityRole y accessibilityLabel ayudan a los lectores de pantalla.
   return (
     <View className="mb-5">
       <View className="flex-row items-center gap-2">

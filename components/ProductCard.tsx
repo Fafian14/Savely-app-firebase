@@ -1,3 +1,6 @@
+/**
+ * TARJETA DE PRODUCTO: resumen compacto utilizado por las ofertas locales.
+ */
 import { Link } from "expo-router";
 import { Pressable, Text, View } from "react-native";
 
@@ -7,9 +10,12 @@ import type { Product } from "@/models/Product";
 import { compararPrecios, formatearPesos } from "@/store/product-comparison";
 
 export default function ProductCard({ producto }: { producto: Product }) {
+  // Deriva tienda ganadora, menor precio y diferencia a partir de la prop producto.
   const { mejorSupermercado, precioMenor, ahorro } = compararPrecios(
     producto.precios,
   );
+  // Link con asChild hace navegable el Pressable hacia el detalle fijo con su ID.
+  // El ternario muestra la tienda de menor precio o un empate; la tarjeta no modifica el catálogo.
   return (
     <Link
       href={{ pathname: "/products/detail", params: { id: producto.id } }}

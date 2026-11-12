@@ -1,11 +1,16 @@
+/**
+ * BOTÓN DE LISTA: utiliza el contexto para añadir o quitar un ID del carrito persistido.
+ */
 import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { useCatalog } from "@/store/CatalogProvider";
 
 export default function ListButton({ id }: { id: number }) {
   const { lista, alternarLista } = useCatalog();
+  // Estado local para mostrar Guardando y deshabilitar este botón durante la escritura.
   const [ocupado, setOcupado] = useState(false);
   const [error, setError] = useState("");
+  // await espera alternarLista; catch presenta el fallo y finally permite volver a pulsar.
   async function alternar() {
     setOcupado(true);
     setError("");
@@ -17,6 +22,8 @@ export default function ListButton({ id }: { id: number }) {
       setOcupado(false);
     }
   }
+  // El texto se deriva de lista.includes(id): muestra añadir, quitar o guardando.
+  // Los errores se renderizan como alertas accesibles.
   return (
     <View>
       <Pressable

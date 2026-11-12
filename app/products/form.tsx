@@ -1,3 +1,7 @@
+/**
+ * RUTA DEL FORMULARIO: /products/form crea; /products/form?id=ID edita.
+ * Ambas operaciones reutilizan ProductForm.
+ */
 import { useLocalSearchParams } from "expo-router";
 import {
   KeyboardAvoidingView,
@@ -11,9 +15,12 @@ import ProductForm from "@/components/ProductForm";
 import { useCatalog } from "@/store/CatalogProvider";
 
 export default function ProductFormScreen() {
+  // Los parámetros de URL son texto: la búsqueda convierte el ID numérico del producto a string.
   const { id } = useLocalSearchParams<{ id?: string }>();
   const { productos } = useCatalog();
   const producto = productos.find((p) => String(p.id) === id);
+  // KeyboardAvoidingView aplica padding en iOS para que el teclado no tape el formulario.
+  // Si se pide un ID inexistente muestra un mensaje. La key reinicia los campos al cambiar de producto.
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
