@@ -148,7 +148,7 @@ function ComparisonContent({ productoInicial }: { productoInicial?: number }) {
             <Text className="flex-1 text-sm leading-5 text-slate-700">
               {mejor
                 ? mejor + " tiene el menor total"
-                : "Ambos supermercados tienen el mismo total"}{" "}
+                : "Las tiendas con precios completos tienen el mismo total"}{" "}
               en estos {filtrados.length} productos.
             </Text>
           </View>
@@ -189,7 +189,7 @@ function ComparisonContent({ productoInicial }: { productoInicial?: number }) {
           </View>
         )}
         <Text className="mt-4 text-center text-xs leading-5 text-slate-500">
-          Precios ficticios en CLP · Una unidad de cada producto.
+          Precios registrados en CLP · Una unidad de cada producto.
         </Text>
       </View>
     </ScrollView>

@@ -1,6 +1,6 @@
 /**
  * DATOS INICIALES: catálogo ficticio con 18 productos y precios en pesos chilenos.
- * CatalogProvider usa esta semilla solo si no hay un catálogo local guardado.
+ * services/catalogo.ts usa esta semilla solo al inicializar Firestore.
  * Este archivo exporta datos; no es Redux ni ofrece las funciones del CRUD antiguo.
  */
 import type { Categoria, Product } from "../models/Product";

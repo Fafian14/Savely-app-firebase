@@ -4,12 +4,10 @@
  */
 import type { Product, Supermercado } from "../models/Product";
 import { compararPrecios } from "./product-comparison";
+import { supermercadosIniciales } from "./supermarkets.store";
 
 // Tiendas simuladas: Líder a 0,4 km y Unimarc a 1,1 km.
-export const supermercados: { nombre: Supermercado; distancia: number }[] = [
-  { nombre: "Líder", distancia: 0.4 },
-  { nombre: "Unimarc", distancia: 1.1 },
-];
+export const supermercados: { nombre: Supermercado; distancia?: number }[] = supermercadosIniciales;
 // Los filtros pertenecen al estado local de LocalOffers; no se persisten con el catálogo.
 export interface OfferFilters {
   radio: number;
@@ -21,11 +19,12 @@ export function filtrarOfertas(
   productos: readonly Product[],
   lista: readonly number[],
   filtros: OfferFilters,
+  tiendas: readonly { nombre: Supermercado; distancia?: number }[] = supermercados,
 ) {
   return productos.filter((p) => {
     const mejor = compararPrecios(p.precios);
     // Busca la tienda de menor precio. Un empate no tiene tienda ganadora y queda fuera del resultado.
-    const tienda = supermercados.find(
+    const tienda = tiendas.find(
       (s) => s.nombre === mejor.mejorSupermercado,
     );
     return (
@@ -34,7 +33,7 @@ export function filtrarOfertas(
       (!filtros.soloLista || lista.includes(p.id)) &&
       !!tienda &&
       // El radio se aplica a la tienda más barata; no busca una alternativa más cara dentro del radio.
-      tienda.distancia <= filtros.radio
+      typeof tienda.distancia === "number" && tienda.distancia <= filtros.radio
     );
   });
 }

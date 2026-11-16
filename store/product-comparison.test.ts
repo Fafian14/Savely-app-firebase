@@ -28,14 +28,14 @@ test("catálogo: 18 IDs únicos, cantidades por categoría y dos precios válido
   assert.ok(
     productos.every(
       (p) =>
-        Number.isInteger(p.precios.lider) &&
-        p.precios.lider > 0 &&
-        Number.isInteger(p.precios.unimarc) &&
-        p.precios.unimarc > 0,
+        Number.isInteger(p.precios.lider!) &&
+        p.precios.lider! > 0 &&
+        Number.isInteger(p.precios.unimarc!) &&
+        p.precios.unimarc! > 0,
     ),
   );
-  assert.ok(productos.some((p) => p.precios.lider < p.precios.unimarc));
-  assert.ok(productos.some((p) => p.precios.unimarc < p.precios.lider));
+  assert.ok(productos.some((p) => p.precios.lider! < p.precios.unimarc!));
+  assert.ok(productos.some((p) => p.precios.unimarc! < p.precios.lider!));
 });
 
 test("precio menor, ahorro y empate", () => {

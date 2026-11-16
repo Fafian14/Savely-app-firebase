@@ -1,139 +1,184 @@
 /**
- * ESTADO COMPARTIDO Y PERSISTENCIA: Context comparte productos y lista entre pantallas.
- * AsyncStorage conserva ese estado por dispositivo u origen web; no hay sincronización con un servidor.
- * useCatalog es el hook personalizado que permite consumir este contexto.
+ * Firestore es la fuente del catálogo compartido. AsyncStorage conserva únicamente
+ * la lista personal, la identidad de migración y el catálogo anterior como respaldo.
  */
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { Pressable, Text, View } from "react-native";
+import type { Product, ProductInput } from "@/models/Product";
+import type { Supermarket } from "@/models/Supermarket";
 import {
-  createContext,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
-import { Text, View, Pressable } from "react-native";
-import type { ProductInput } from "@/models/Product";
-import { productos } from "./products.store";
-import {
-  guardarProducto,
-  eliminarProducto,
-  leerCatalogo,
-  type CatalogState,
-} from "./catalog";
+  crearIdMigracion, eliminarProductoRemoto, guardarProductoRemoto,
+  inicializarCatalogo, mensajeErrorCatalogo, migrarCatalogoLocal,
+  observarProductos, observarSupermercados,
+} from "@/services/catalogo";
+import { leerCatalogo } from "./catalog";
 
-// Clave versionada del almacenamiento local. AsyncStorage guarda texto, por eso se utiliza JSON.
-const clave = "savely.catalog.v1";
-// Semilla para el primer inicio. La lista empieza vacía y el ID siguiente supera el máximo inicial.
-const inicial: CatalogState = {
-  versionImagenes: 1,
-  productos,
-  lista: [],
-  siguienteId: Math.max(0, ...productos.map((p) => p.id)) + 1,
-};
-// Amplía los datos con operaciones asíncronas: guardar, eliminar y alternarLista.
-interface CatalogContext extends CatalogState {
+const claveAnterior = "savely.catalog.v1";
+const claveLista = "savely.lista.v2";
+const claveMigracion = "savely.migracion.catalogo.v2";
+
+interface CatalogContext {
+  productos: Product[];
+  lista: number[];
+  supermercados: Supermarket[];
   guardar: (input: ProductInput, id?: number) => Promise<number>;
   eliminar: (id: number) => Promise<void>;
   alternarLista: (id: number) => Promise<void>;
 }
-// null indica ausencia de provider. useCatalog comprueba esta situación antes de devolver los datos.
 const Context = createContext<CatalogContext | null>(null);
 
 export function CatalogProvider({ children }: { children: ReactNode }) {
-  // useState conserva los datos que afectan la interfaz; setEstado vuelve a renderizar los consumidores.
-  const [estado, setEstado] = useState(inicial);
+  const [productos, setProductos] = useState<Product[]>([]);
+  const [supermercados, setSupermercados] = useState<Supermarket[]>([]);
+  const [lista, setLista] = useState<number[]>([]);
   const [listo, setListo] = useState(false);
   const [error, setError] = useState("");
-  // useRef conserva el estado más reciente y la cola entre renders sin provocar renders por sí solo.
-  const actual = useRef(inicial);
-  const cola = useRef<Promise<unknown>>(Promise.resolve());
+  const [desdeCache, setDesdeCache] = useState(false);
+  const [intento, setIntento] = useState(0);
+  const productosActuales = useRef<Product[]>([]);
+  const listaActual = useRef<number[]>([]);
+  const colaLista = useRef<Promise<unknown>>(Promise.resolve());
 
-  // Lee y valida el catálogo local; si no hay datos usa la semilla.
-  // Una lectura fallida muestra error y permite reintentar sin sobrescribir los datos guardados.
-  async function cargar() {
-    setError("");
-    try {
-      const texto = await AsyncStorage.getItem(clave);
-      actual.current = texto ? leerCatalogo(texto) : inicial;
-      setEstado(actual.current);
-      setListo(true);
-    } catch {
-      setError(
-        "No pudimos leer tus datos locales. No se ha reemplazado el catálogo guardado.",
-      );
-    }
-  }
-  // Carga al montar el provider. El arreglo vacío expresa que no depende de estados o props cambiantes.
   useEffect(() => {
-    void cargar();
-  }, []);
+    let cancelado = false;
+    let productosConfirmados = false;
+    let tiendasConfirmadas = false;
+    let cacheProductos = true;
+    let cacheTiendas = true;
+    let detenerProductos: (() => void) | undefined;
+    let detenerTiendas: (() => void) | undefined;
+    setError("");
 
-  // Serializa escrituras: una operación solo se publica cuando queda guardada.
-  // Cada tarea se encadena a la anterior y transforma la última versión del catálogo.
-  function modificar(transformar: (s: CatalogState) => CatalogState) {
-    const tarea = cola.current.then(async () => {
-      const siguiente = transformar(actual.current);
-      // Primero persiste. Solo después publica el nuevo estado: una escritura fallida no aparece como exitosa.
-      await AsyncStorage.setItem(clave, JSON.stringify(siguiente));
-      actual.current = siguiente;
-      setEstado(siguiente);
-      return siguiente;
+    function fallar(causa: unknown) {
+      if (!cancelado) setError(mensajeErrorCatalogo(causa));
+    }
+    function actualizarConexion() {
+      if (cancelado) return;
+      setDesdeCache(cacheProductos || cacheTiendas);
+      if (productosConfirmados && tiendasConfirmadas) setListo(true);
+    }
+    async function cargar() {
+      try {
+        const guardada = await AsyncStorage.getItem(claveLista);
+        let ids: number[];
+        if (guardada !== null) {
+          const valor: unknown = JSON.parse(guardada);
+          if (!Array.isArray(valor) || !valor.every((id) => Number.isSafeInteger(id) && id > 0) || new Set(valor).size !== valor.length)
+            throw new Error("No pudimos leer tu lista personal. El respaldo local se ha conservado.");
+          ids = valor;
+        } else {
+          ids = [];
+        }
+        await inicializarCatalogo();
+        if (cancelado) return;
+        // La lista v2 solo se crea después de confirmar la importación remota.
+        if (guardada === null) {
+          const texto = await AsyncStorage.getItem(claveAnterior);
+          if (texto) {
+            const local = leerCatalogo(texto);
+            let migracionId = await AsyncStorage.getItem(claveMigracion);
+            if (!migracionId) {
+              migracionId = crearIdMigracion();
+              await AsyncStorage.setItem(claveMigracion, migracionId);
+            }
+            const mapa = await migrarCatalogoLocal(local, migracionId);
+            ids = local.lista.map((id) => mapa[String(id)] ?? id);
+          }
+          if (cancelado) return;
+          await AsyncStorage.setItem(claveLista, JSON.stringify(ids));
+        }
+        if (cancelado) return;
+        listaActual.current = ids;
+        setLista(ids);
+        detenerProductos = observarProductos((datos, cache) => {
+          if (cancelado || (!productosConfirmados && cache)) return;
+          productosActuales.current = datos;
+          setProductos(datos);
+          cacheProductos = cache;
+          productosConfirmados = true;
+          actualizarConexion();
+        }, fallar);
+        detenerTiendas = observarSupermercados((datos, cache) => {
+          if (cancelado || (!tiendasConfirmadas && cache)) return;
+          setSupermercados(datos);
+          cacheTiendas = cache;
+          tiendasConfirmadas = true;
+          actualizarConexion();
+        }, fallar);
+      } catch (causa) { fallar(causa); }
+    }
+    void cargar();
+    return () => {
+      cancelado = true;
+      detenerProductos?.();
+      detenerTiendas?.();
+    };
+  }, [intento]);
+
+  // Serializa solamente la lista personal; los IDs de productos los reserva Firestore.
+  function alternarLista(id: number) {
+    const tarea = colaLista.current.then(async () => {
+      if (!productosActuales.current.some((p) => p.id === id))
+        throw new Error("Este producto ya no existe.");
+      const vigentes = listaActual.current.filter((valor) => productosActuales.current.some((p) => p.id === valor));
+      const siguiente = vigentes.includes(id) ? vigentes.filter((valor) => valor !== id) : [...vigentes, id];
+      await AsyncStorage.setItem(claveLista, JSON.stringify(siguiente));
+      listaActual.current = siguiente;
+      setLista(siguiente);
     });
-    // Recupera la cola tras un fallo para permitir nuevas operaciones; la tarea original conserva su rechazo.
-    cola.current = tarea.catch(() => undefined);
+    colaLista.current = tarea.catch(() => undefined);
     return tarea;
   }
-  // Renderizado condicional: la aplicación espera la carga antes de mostrar pantallas que usan el catálogo.
-  if (!listo)
-    return (
-      <View className="flex-1 items-center justify-center bg-slate-50 p-6">
-        <Text className="text-center text-slate-700">
-          {error || "Cargando Savely…"}
-        </Text>
-        {!!error && (
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => void cargar()}
-            className="mt-4 rounded-xl bg-teal-700 p-4"
-          >
-            <Text className="text-white">Reintentar</Text>
-          </Pressable>
-        )}
-      </View>
-    );
-  // El provider entrega estado y acciones a todos sus descendientes mediante value.
-  // children representa las pantallas y la navegación envueltas por CatalogProvider.
+
+  const aviso = (
+    <View className="bg-amber-50 p-4">
+      <Text accessibilityRole={error ? "alert" : "text"} className="text-amber-900">
+        {error || "Mostrando la última información recibida. Necesitas conexión para guardar cambios en el catálogo."}
+      </Text>
+      {!!error && (
+        <Pressable accessibilityRole="button" onPress={() => setIntento((v) => v + 1)} className="mt-2 min-h-11 justify-center">
+          <Text className="font-work-medium text-teal-800">Reintentar conexión</Text>
+        </Pressable>
+      )}
+    </View>
+  );
+
+  if (!listo) return (
+    <View className="flex-1 items-center justify-center bg-slate-50 p-6">
+      {error ? aviso : <Text className="text-center text-slate-700">Cargando catálogo de Firebase…</Text>}
+    </View>
+  );
+
   return (
-    <Context.Provider
-      value={{
-        ...estado,
-        // Delega al CRUD puro y devuelve el ID para abrir el detalle después del guardado.
-        guardar: async (input, id) => {
-          const s = await modificar((prev) => guardarProducto(prev, input, id));
-          return id ?? s.siguienteId - 1;
-        },
-        eliminar: async (id) => {
-          await modificar((prev) => eliminarProducto(prev, id));
-        },
-        // Guarda solamente IDs. Si ya existe lo quita; si falta y el producto existe lo añade.
-        alternarLista: async (id) => {
-          await modificar((prev) => ({
-            ...prev,
-            lista: prev.lista.includes(id)
-              ? prev.lista.filter((v) => v !== id)
-              : prev.productos.some((p) => p.id === id)
-                ? [...prev.lista, id]
-                : prev.lista,
-          }));
-        },
-      }}
-    >
-      {children}
+    <Context.Provider value={{
+      productos, supermercados,
+      // Un producto borrado en otro dispositivo también desaparece de la lista visible.
+      lista: lista.filter((id) => productos.some((p) => p.id === id)),
+      guardar: async (input, id) => {
+        const producto = await guardarProductoRemoto(input, id);
+        // Publica tras confirmar el commit, antes de navegar al detalle.
+        const siguientes = [...productosActuales.current.filter((p) => p.id !== producto.id), producto].sort((a, b) => a.id - b.id);
+        productosActuales.current = siguientes;
+        setProductos(siguientes);
+        return producto.id;
+      },
+      eliminar: async (id) => {
+        await eliminarProductoRemoto(id);
+        const siguientes = productosActuales.current.filter((p) => p.id !== id);
+        productosActuales.current = siguientes;
+        setProductos(siguientes);
+      },
+      alternarLista,
+    }}>
+      <View className="flex-1">
+        {(!!error || desdeCache) && aviso}
+        {children}
+      </View>
     </Context.Provider>
   );
 }
-// Hook personalizado: centraliza useContext y falla de forma explícita si falta CatalogProvider.
+
 export function useCatalog() {
   const context = useContext(Context);
   if (!context) throw new Error("Falta CatalogProvider.");

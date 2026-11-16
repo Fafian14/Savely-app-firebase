@@ -10,7 +10,6 @@ import { useCatalog } from "@/store/CatalogProvider";
 import {
   ahorroOfertas,
   filtrarOfertas,
-  supermercados,
   type OfferFilters,
 } from "@/store/offers";
 import { compararPrecios } from "@/store/product-comparison";
@@ -19,7 +18,7 @@ import ProductCard from "./ProductCard";
 import StoreBadge from "./StoreBadge";
 
 export default function LocalOffers() {
-  const { productos, lista } = useCatalog();
+  const { productos, lista, supermercados } = useCatalog();
   // Estado inicial: radio de 2 km, ofertas de hoy y todos los productos.
   const [filtros, setFiltros] = useState<OfferFilters>({
     radio: 2,
@@ -29,7 +28,7 @@ export default function LocalOffers() {
   // Controla qué selector está abierto: radio, periodo o ninguno.
   const [opciones, setOpciones] = useState<"radio" | "periodo" | null>(null);
   // Deriva ofertas del catálogo y filtros; ahorroOfertas recalcula el importe del banner.
-  const visibles = filtrarOfertas(productos, lista, filtros);
+  const visibles = filtrarOfertas(productos, lista, filtros, supermercados);
   // Los botones cambian filtros creando objetos nuevos mediante spread.
   // El banner recibe cifras por props; los productos se agrupan según su tienda de menor precio.
   // Las condiciones muestran opciones abiertas y mensajes cuando una tienda o el resultado están vacíos.
@@ -102,11 +101,11 @@ export default function LocalOffers() {
         Supermercados cercanos
       </Text>
       <Text className="mb-3 text-xs leading-5 text-slate-500">
-        Distancias y ofertas de demostración. No usamos tu ubicación.
+        Distancias y ofertas de demostración. No usamos tu ubicación. Las tiendas sin distancia registrada no se incluyen en este filtro.
       </Text>
       <View className="gap-4">
         {supermercados
-          .filter((s) => s.distancia <= filtros.radio)
+          .filter((s) => typeof s.distancia === "number" && s.distancia <= filtros.radio)
           .map((tienda) => {
             const ofertas = visibles.filter(
               (p) =>

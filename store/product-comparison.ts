@@ -8,38 +8,38 @@ import type {
   Product,
   Supermercado,
 } from "../models/Product";
+import { supermercados } from "../models/Product";
 
 // Redondea para mostrar pesos y usa separadores chilenos: 1490 se presenta como $1.490.
 export function formatearPesos(valor: number): string {
   return "$" + Math.round(valor).toLocaleString("es-CL");
 }
 
-// Compara las dos tiendas. Un empate se representa con null y ahorro cero.
+// Compara solo precios registrados. Un empate entre todos devuelve null.
 export function compararPrecios(precios: Precios) {
-  const mejorSupermercado: Supermercado | null =
-    precios.lider === precios.unimarc
-      ? null
-      : precios.lider < precios.unimarc
-        ? "Líder"
-        : "Unimarc";
-
+  const registrados = supermercados.filter((s) => typeof precios[s.clave] === "number" && Number.isFinite(precios[s.clave]));
+  const valores = registrados.map((s) => precios[s.clave]!);
+  if (!valores.length) return { mejorSupermercado: null as Supermercado | null, precioMenor: 0, ahorro: 0 };
+  const menor = Math.min(...valores);
+  const mayor = Math.max(...valores);
   return {
-    mejorSupermercado,
-    precioMenor: Math.min(precios.lider, precios.unimarc),
-    // Diferencia absoluta: siempre positiva o cero, independientemente de la tienda ganadora.
-    ahorro: Math.abs(precios.lider - precios.unimarc),
+    mejorSupermercado: menor === mayor && registrados.length > 1 ? null : registrados.find((s) => precios[s.clave] === menor)!.nombre as Supermercado,
+    precioMenor: menor,
+    ahorro: mayor - menor,
   };
 }
 
-// reduce acumula dos totales separados. El valor inicial permite sumar también un catálogo vacío.
+// Solo totaliza una tienda cuando tiene precio para TODOS los productos.
+// Un total incompleto se omite, nunca se presenta como una compra más barata.
 export function sumarPrecios(productos: readonly Product[]): Precios {
-  return productos.reduce(
-    (total, producto) => ({
-      lider: total.lider + producto.precios.lider,
-      unimarc: total.unimarc + producto.precios.unimarc,
-    }),
-    { lider: 0, unimarc: 0 },
-  );
+  if (!productos.length) return { lider: 0, unimarc: 0 };
+  const total: Precios = {};
+  for (const tienda of supermercados) {
+    if (productos.length === 0 && tienda.clave !== "lider" && tienda.clave !== "unimarc") continue;
+    if (productos.every((p) => typeof p.precios[tienda.clave] === "number"))
+      total[tienda.clave] = productos.reduce((suma, p) => suma + p.precios[tienda.clave]!, 0);
+  }
+  return total;
 }
 
 // filter extrae la categoría; luego suma y compara la compra completa en cada tienda.
@@ -64,13 +64,9 @@ export function calcularAhorroPromedio(
   productos: readonly Product[],
   categorias: readonly Categoria[],
 ) {
-  if (categorias.length === 0) return 0;
-  return (
-    categorias.reduce(
-      (suma, categoria) => suma + resumirCategoria(productos, categoria).ahorro,
-      0,
-    ) / categorias.length
-  );
+  const comparables = categorias.map((categoria) => resumirCategoria(productos, categoria))
+    .filter((r) => r.productos.length > 0 && Object.keys(r.totales).length >= 2);
+  return comparables.length ? comparables.reduce((suma, r) => suma + r.ahorro, 0) / comparables.length : 0;
 }
 
 // El límite también se aplica al actualizar el estado, aunque el botón esté deshabilitado.
@@ -90,7 +86,7 @@ export function alternarSeleccion(
 // Tiene pruebas, pero no está conectado al banner actual: ese banner usa ahorroOfertas.
 export function calcularAhorroCompra(productos: readonly Product[]) {
   const totales = sumarPrecios(productos);
-  const totalUnaTienda = Math.min(totales.lider, totales.unimarc);
+  const totalUnaTienda = Object.keys(totales).length ? Math.min(...Object.values(totales)) : null;
   const totalMejoresPrecios = productos.reduce(
     (suma, producto) => suma + compararPrecios(producto.precios).precioMenor,
     0,
@@ -99,7 +95,7 @@ export function calcularAhorroCompra(productos: readonly Product[]) {
     totales,
     totalUnaTienda,
     totalMejoresPrecios,
-    ahorro: totalUnaTienda - totalMejoresPrecios,
+    ahorro: totalUnaTienda === null ? 0 : totalUnaTienda - totalMejoresPrecios,
   };
 }
 
@@ -135,11 +131,12 @@ export function precioPorUnidad(producto: Product) {
       : producto.unidad === "ml"
         ? "L"
         : producto.unidad;
-  return {
-    unidad,
-    lider: (producto.precios.lider * factor) / producto.contenido,
-    unimarc: (producto.precios.unimarc * factor) / producto.contenido,
-  };
+  const precios: Precios = {};
+  for (const tienda of supermercados) {
+    const precio = producto.precios[tienda.clave];
+    if (typeof precio === "number") precios[tienda.clave] = (precio * factor) / producto.contenido;
+  }
+  return { unidad, ...precios };
 }
 
 // Construye el texto de cantidad, unidad y presentación utilizando el formato local.

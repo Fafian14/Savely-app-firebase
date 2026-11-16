@@ -10,6 +10,7 @@ import CategoryIcon from "@/components/CategoryIcon";
 import SavingsCard from "@/components/SavingsCard";
 import StoreBadge from "@/components/StoreBadge";
 import type { Supermercado } from "@/models/Product";
+import { supermercados } from "@/models/Product";
 import { useCatalog } from "@/store/CatalogProvider";
 import { categorias } from "@/store/products.store";
 import {
@@ -21,16 +22,17 @@ import {
 export default function CategoryComparison() {
   // Consume el catálogo actual: las modificaciones se reflejan en categorías y promedio.
   const { productos } = useCatalog();
+  const cantidadComparables = categorias.filter((categoria) => { const r = resumirCategoria(productos, categoria); return r.productos.length > 0 && Object.keys(r.totales).length >= 2; }).length;
   // SavingsCard recibe el promedio por props. map genera un enlace por categoría.
   // resumirCategoria calcula totales y ordena visualmente la tienda con menor total.
   // Un empate se etiqueta como tal; el orden visual no representa una ventaja en ese caso.
   return (
     <View>
-      <SavingsCard
-        titulo="Ahorro promedio por categoría"
+      {cantidadComparables > 0 ? <SavingsCard
+        titulo="Diferencia promedio por categoría"
         ahorro={calcularAhorroPromedio(productos, categorias)}
-        descripcion="Promedio de las diferencias entre comprar cada categoría en Líder o Unimarc."
-      />
+        descripcion="Comparamos categorías con precios completos en al menos dos tiendas."
+      /> : <Text className="rounded-2xl bg-teal-50 p-4 text-teal-800">Faltan precios completos en al menos dos tiendas para comparar categorías.</Text>}
       <View className="mb-3 mt-5 flex-row px-3">
         <Text className="w-1/3 text-xs text-slate-500">Categoría</Text>
         <Text className="w-1/3 text-xs text-slate-500">Mejor opción</Text>
@@ -39,10 +41,12 @@ export default function CategoryComparison() {
       <View className="gap-3">
         {categorias.map((categoria) => {
           const resumen = resumirCategoria(productos, categoria);
-          const orden: Supermercado[] =
-            resumen.mejorSupermercado === "Unimarc"
-              ? ["Unimarc", "Líder"]
-              : ["Líder", "Unimarc"];
+          const orden: Supermercado[] = supermercados
+            .map((tienda) => ({ nombre: tienda.nombre, total: resumen.totales[tienda.clave] ?? Infinity }))
+            .filter((tienda) => Number.isFinite(tienda.total))
+            .sort((a, b) => a.total - b.total)
+            .slice(0, 2)
+            .map((tienda) => tienda.nombre);
           return (
             <Link
               key={categoria}
@@ -75,9 +79,7 @@ export default function CategoryComparison() {
                       <StoreBadge supermercado={tienda} />
                       <Text className="text-sm font-work-medium text-slate-800">
                         {formatearPesos(
-                          tienda === "Líder"
-                            ? resumen.totales.lider
-                            : resumen.totales.unimarc,
+                          resumen.totales[supermercados.find((opcion) => opcion.nombre === tienda)!.clave] ?? 0,
                         )}
                       </Text>
                       <Text
@@ -94,7 +96,7 @@ export default function CategoryComparison() {
                 </View>
                 <View className="mt-3 flex-row items-center justify-between border-t border-slate-100 pt-2">
                   <Text className="text-xs font-work-medium text-teal-700">
-                    Ahorras {formatearPesos(resumen.ahorro)} en esta categoría
+                    {Object.keys(resumen.totales).length >= 2 ? `Diferencia máxima: ${formatearPesos(resumen.ahorro)}` : "Faltan precios para comparar la categoría"}
                   </Text>
                   <Ionicons name="chevron-forward" size={16} color="#64748b" />
                 </View>
@@ -107,8 +109,8 @@ export default function CategoryComparison() {
         <Ionicons name="information-circle-outline" size={22} color="#0f766e" />
         <Text className="flex-1 text-xs leading-5 text-slate-600">
           Sumamos una unidad de cada producto por tienda. El ahorro promedio es
-          la suma de las diferencias de las {categorias.length} categorías
-          dividida entre {categorias.length}. Precios ficticios.
+          la suma de las diferencias de las {cantidadComparables} categorías comparables
+          dividida entre su cantidad, cuando existe alguna. Solo se comparan tiendas con todos los precios de la categoría.
         </Text>
       </View>
     </View>

@@ -5,13 +5,23 @@
 // Unión de literales: solo permite las cinco categorías definidas.
 export type Categoria =
   "Alimentos" | "Bebidas" | "Limpieza" | "Higiene" | "Hogar";
-// La implementación actual compara únicamente estas dos tiendas.
-export type Supermercado = "Líder" | "Unimarc";
+// Tiendas soportadas; la clave identifica el precio registrado en Firestore.
+export const supermercados = [
+  { nombre: "Líder", clave: "lider" },
+  { nombre: "Unimarc", clave: "unimarc" },
+  { nombre: "Jumbo", clave: "jumbo" },
+  { nombre: "Santa Isabel", clave: "santaIsabel" },
+] as const;
+export type Supermercado = (typeof supermercados)[number]["nombre"];
+export type ClavePrecio = (typeof supermercados)[number]["clave"];
 
-// Ambos precios se expresan en CLP y corresponden al mismo contenido del producto.
+// Los precios registrados se expresan en CLP para el mismo contenido. Ausente significa desconocido.
 export interface Precios {
-  lider: number;
-  unimarc: number;
+  lider?: number;
+  unimarc?: number;
+  // Ausente significa desconocido; nunca se inventa ni se interpreta como cero.
+  jumbo?: number;
+  santaIsabel?: number;
 }
 
 // Cada clave identifica un PNG local transparente incluido por Metro.

@@ -64,7 +64,7 @@ export default function SavingsBanner({
       </View>
       {info && (
         <Text className="mt-3 text-xs leading-5 text-white">
-          Sumamos la diferencia entre Líder y Unimarc para una unidad de cada
+          Sumamos la diferencia entre el mayor y el menor precio registrado para una unidad de cada
           producto visible, eligiendo su menor precio. La distancia filtra la
           tienda más barata. Es una comparación entre tiendas, no un descuento
           histórico. Datos y disponibilidad simulados.

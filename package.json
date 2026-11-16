@@ -8,7 +8,9 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "test": "node --require ./scripts/register-typescript.cjs --test store/catalog.test.ts store/product-comparison.test.ts tests/firebase.test.cjs tests/catalogo.firebase.test.cjs tests/product-form.test.cjs store/route-planner.test.ts",
+    "firebase:migrate": "node scripts/migrar-catalogo.cjs"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",

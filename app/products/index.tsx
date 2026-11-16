@@ -3,7 +3,8 @@
  */
 import { useState } from "react";
 import { Link } from "expo-router";
-import { ScrollView, Text, TextInput, View } from "react-native";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import Header from "@/components/Header";
 import ProductMetadata from "@/components/ProductMetadata";
 import ProductImage from "@/components/ProductImage";
@@ -26,55 +27,91 @@ export default function ProductsScreen() {
       keyboardShouldPersistTaps="handled"
       contentContainerClassName="pb-6"
     >
-      <View className="mx-auto w-full max-w-2xl p-4">
+      <View className="mx-auto w-full max-w-2xl bg-[#f5f7f2] p-5">
         <Header titulo="Catálogo de productos" volverA="/" />
-        <Link
-          href="/products/form"
-          className="mb-4 rounded-xl bg-teal-700 p-4 text-center font-work-medium text-white"
+        <View className="mb-4 flex-row items-center gap-2">
+          <Link
+            href="/products/form"
+            className="min-h-11 flex-row items-center justify-center gap-2 rounded-xl bg-teal-700 px-4 py-3 font-work-medium text-white"
+          >
+            <Ionicons name="add" size={18} color="white" />
+            Añadir producto
+          </Link>
+          <Text className="flex-1 text-right text-xs text-slate-500">
+            {productos.length} en catálogo
+          </Text>
+        </View>
+        <View className="mb-3 flex-row items-center rounded-2xl border border-[#e5e9e1] bg-white px-3 shadow-sm">
+          <Ionicons name="search-outline" size={20} color="#64748b" />
+          <TextInput
+            accessibilityLabel="Buscar en catálogo"
+            placeholder="Buscar por nombre"
+            placeholderTextColor="#94a3b8"
+            value={busqueda}
+            onChangeText={setBusqueda}
+            className="min-h-12 flex-1 px-3 text-base text-slate-800"
+          />
+          {!!busqueda && (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Limpiar búsqueda"
+              onPress={() => setBusqueda("")}
+              className="min-h-11 min-w-11 items-center justify-center"
+            >
+              <Ionicons name="close-circle" size={20} color="#94a3b8" />
+            </Pressable>
+          )}
+        </View>
+        <Text
+          accessibilityLiveRegion="polite"
+          className="mb-3 text-xs text-slate-500"
         >
-          Crear producto
-        </Link>
-        <TextInput
-          accessibilityLabel="Buscar en catálogo"
-          placeholder="Buscar por nombre"
-          value={busqueda}
-          onChangeText={setBusqueda}
-          className="mb-4 min-h-12 rounded-xl border border-slate-200 bg-white px-3 text-base text-slate-800"
-        />
-        <Text className="mb-3 text-sm text-slate-500">
-          {visibles.length} productos · Datos locales
+          {visibles.length}{" "}
+          {visibles.length === 1 ? "resultado" : "resultados"}
         </Text>
         <View className="gap-4">
           {visibles.map((p) => (
             <View
               key={p.id}
-              className="rounded-2xl border border-slate-100 bg-white p-4"
+              className="rounded-3xl border border-[#e8ece5] bg-white p-4 shadow-sm"
             >
               <View className="mb-3 flex-row items-center gap-3">
-                <View className="w-14">
-                  <ProductImage producto={p} mini />
+                <View className="h-16 w-16 items-center justify-center rounded-2xl bg-[#f3f6ef] p-1">
+                  <View className="w-full"><ProductImage producto={p} mini /></View>
                 </View>
-                <Text className="flex-1 text-lg font-work-medium text-slate-800">
-                  {p.nombre}
-                </Text>
+                <View className="flex-1">
+                  <Text className="mb-1 self-start rounded-full bg-[#edf4eb] px-2 py-1 text-[10px] font-work-medium text-[#52745c]">
+                    ID · {p.id}
+                  </Text>
+                  <Text className="text-base font-work-medium text-slate-800">
+                    {p.nombre}
+                  </Text>
+                </View>
               </View>
               <ProductMetadata producto={p} />
-              <PriceComparison precios={p.precios} />
+              <PriceComparison precios={p.precios} variante="zip" />
               <Link
                 href={{ pathname: "/products/detail", params: { id: p.id } }}
                 className="mt-3 py-3 text-center text-teal-700"
               >
                 Ver detalle de {p.nombre}
               </Link>
-              <ListButton id={p.id} />
+              <ListButton id={p.id} variante="zip" />
             </View>
           ))}
         </View>
         {!visibles.length && (
-          <Text className="rounded-xl bg-white p-5 text-center text-slate-600">
-            No hay productos que coincidan. Puedes crear uno nuevo.
-          </Text>
+          <View className="items-center rounded-2xl border border-slate-100 bg-white p-6">
+            <Ionicons name="search-outline" size={28} color="#94a3b8" />
+            <Text className="mt-2 text-center font-work-medium text-slate-700">
+              No encontramos productos
+            </Text>
+            <Text className="mt-1 text-center text-sm text-slate-500">
+              Prueba con otro nombre o agrega un producto al catálogo.
+            </Text>
+          </View>
         )}
+        <Text className="mt-4 text-center text-[11px] leading-4 text-slate-500">Precios de demostración en CLP para comparar alternativas; confirma valores y disponibilidad en cada supermercado.</Text>
       </View>
     </ScrollView>
   );

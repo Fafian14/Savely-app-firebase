@@ -11,18 +11,22 @@ import { ofertas, unidades, validarProducto } from "@/store/catalog";
 import { useCatalog } from "@/store/CatalogProvider";
 import ProductImage from "./ProductImage";
 import { elegirImagen, opcionesImagen } from "@/store/product-images";
+import { mensajeErrorCatalogo } from "@/services/catalogo";
+import { formatearContenido, parsearCamposNumericos } from "@/store/product-form";
 
 export default function ProductForm({ producto }: { producto?: Product }) {
-  const { guardar } = useCatalog();
+  const { guardar, supermercados } = useCatalog();
   // El encadenamiento opcional ?. y ?? cargan los datos al editar o valores iniciales al crear.
   const [nombre, setNombre] = useState(producto?.nombre ?? "");
   const [descripcion, setDescripcion] = useState(producto?.descripcion ?? "");
   const [tamano, setTamano] = useState(producto?.tamano ?? "");
-  const [contenido, setContenido] = useState(String(producto?.contenido ?? ""));
+  const [contenido, setContenido] = useState(producto ? formatearContenido(producto.contenido) : "");
   const [lider, setLider] = useState(String(producto?.precios.lider ?? ""));
   const [unimarc, setUnimarc] = useState(
     String(producto?.precios.unimarc ?? ""),
   );
+  const [jumbo, setJumbo] = useState(String(producto?.precios.jumbo ?? ""));
+  const [santaIsabel, setSantaIsabel] = useState(String(producto?.precios.santaIsabel ?? ""));
   const [categoria, setCategoria] = useState<Product["categoria"]>(
     producto?.categoria ?? "Alimentos",
   );
@@ -52,34 +56,40 @@ export default function ProductForm({ producto }: { producto?: Product }) {
       numeric: true,
     },
     {
-      label: "Precio en Líder",
+      label: `Precio en ${supermercados.find((s) => s.id === "lider")!.nombre}`,
       value: lider,
       set: setLider,
       max: 9,
       numeric: true,
     },
     {
-      label: "Precio en Unimarc",
+      label: `Precio en ${supermercados.find((s) => s.id === "unimarc")!.nombre}`,
       value: unimarc,
       set: setUnimarc,
       max: 9,
       numeric: true,
     },
+    { label: "Precio en Jumbo (opcional)", value: jumbo, set: setJumbo, max: 9, numeric: true },
+    { label: "Precio en Santa Isabel (opcional)", value: santaIsabel, set: setSantaIsabel, max: 9, numeric: true },
   ];
   // Construye ProductInput, valida, espera el almacenamiento y navega al detalle si tiene éxito.
   async function guardarCambios() {
+    const numeros = parsearCamposNumericos({ contenido, lider, unimarc, jumbo, santaIsabel });
+    if (!numeros.valido) {
+      setError(numeros.error);
+      return;
+    }
     const input: ProductInput = {
       nombre,
       imagen,
       descripcion,
       tamano,
-      // Los TextInput entregan strings. Convierte a número y acepta coma decimal en el contenido.
-      // Los precios se convierten con Number y la validación exige pesos enteros positivos.
-      contenido: Number(contenido.replace(",", ".")),
+      // El formato escrito ya fue comprobado antes de convertir a número.
+      contenido: numeros.contenido,
       unidad,
       categoria,
       oferta,
-      precios: { lider: Number(lider), unimarc: Number(unimarc) },
+      precios: numeros.precios,
     };
     // Una validación fallida interrumpe el guardado antes de tocar el almacenamiento.
     const mensaje = validarProducto(input);
@@ -94,10 +104,8 @@ export default function ProductForm({ producto }: { producto?: Product }) {
       const id = await guardar(input, producto?.id);
       // Reemplaza el formulario para que volver no reabra una operación de guardado ya terminada.
       router.replace({ pathname: "/products/detail", params: { id } });
-    } catch {
-      setError(
-        "No se pudo guardar el producto. Verifica el almacenamiento e inténtalo nuevamente.",
-      );
+    } catch (causa) {
+      setError(mensajeErrorCatalogo(causa));
     } finally {
       setOcupado(false);
     }
@@ -108,8 +116,9 @@ export default function ProductForm({ producto }: { producto?: Product }) {
   return (
     <View className="gap-4 rounded-2xl border border-slate-100 bg-white p-4">
       <Text className="text-sm leading-5 text-slate-500">
-        Completa todos los campos. Ingresa precios en pesos sin puntos
-        ni separadores. Ambos supermercados venden el mismo contenido.
+        Registra al menos un precio. Deja vacío el de cualquier tienda donde no conozcas el valor. Ingresa precios en pesos sin puntos
+        ni separadores. En contenido puedes usar coma o punto decimal, por
+        ejemplo 1,5 o 0.5. Compara el mismo producto y contenido en todas las tiendas.
       </Text>
       {/* La misma imagen se guarda con el producto y se presenta en todas las pantallas. */}
       <View className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
@@ -219,7 +228,7 @@ export default function ProductForm({ producto }: { producto?: Product }) {
       </View>
       <Text className="text-xs leading-5 text-slate-500">
         “Hoy” también aparece en Esta semana. Las fechas y distancias son
-        simuladas; el ahorro compara los dos supermercados.
+        simuladas; el ahorro compara los precios registrados.
       </Text>
       {!!error && (
         <Text accessibilityRole="alert" className="text-red-700">

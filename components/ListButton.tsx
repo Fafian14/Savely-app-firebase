@@ -4,9 +4,11 @@
 import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { useCatalog } from "@/store/CatalogProvider";
+import Ionicons from "@expo/vector-icons/Ionicons";
 
-export default function ListButton({ id }: { id: number }) {
+export default function ListButton({ id, variante = "actual" }: { id: number; variante?: "actual" | "zip" }) {
   const { lista, alternarLista } = useCatalog();
+  const enLista = lista.includes(id);
   // Estado local para mostrar Guardando y deshabilitar este botón durante la escritura.
   const [ocupado, setOcupado] = useState(false);
   const [error, setError] = useState("");
@@ -28,15 +30,18 @@ export default function ListButton({ id }: { id: number }) {
     <View>
       <Pressable
         accessibilityRole="button"
+        accessibilityLabel={enLista ? "Quitar de mi lista" : "Añadir a mi lista"}
+        accessibilityState={{ selected: enLista, disabled: ocupado }}
         disabled={ocupado}
         onPress={() => void alternar()}
-        className="mt-3 min-h-12 items-center justify-center rounded-xl bg-teal-50 p-3"
+        className={variante === "zip" ? `mt-3 min-h-14 flex-row items-center justify-center gap-2 rounded-2xl p-4 ${enLista ? "bg-teal-50 active:bg-teal-100" : "bg-teal-700 active:bg-teal-800"} ${ocupado ? "opacity-70" : ""}` : "mt-3 min-h-12 items-center justify-center rounded-xl bg-teal-50 p-3"}
       >
-        <Text className="text-teal-800">
+        {variante === "zip" && <Ionicons name={ocupado ? "sync-outline" : enLista ? "checkmark-circle" : "add-circle-outline"} size={20} color={enLista ? "#0f766e" : "white"} />}
+        <Text className={variante === "zip" ? `font-work-medium ${enLista ? "text-teal-800" : "text-white"}` : "text-teal-800"}>
           {ocupado
             ? "Guardando…"
-            : lista.includes(id)
-              ? "Quitar de mi lista"
+            : enLista
+              ? variante === "zip" ? "En mi lista · Quitar" : "Quitar de mi lista"
               : "Añadir a mi lista"}
         </Text>
       </Pressable>

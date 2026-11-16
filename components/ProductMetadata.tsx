@@ -2,6 +2,7 @@
  * METADATOS: muestra categoría, contenido, presentación, descripción y precio por unidad.
  */
 import { Text, View } from "react-native";
+import { supermercados } from "@/models/Product";
 import type { Product } from "@/models/Product";
 import {
   describirContenido,
@@ -20,8 +21,7 @@ export default function ProductMetadata({ producto }: { producto: Product }) {
       </Text>
       <Text className="text-sm text-slate-600">{producto.descripcion}</Text>
       <Text className="text-xs leading-5 text-teal-700">
-        Por {normalizado.unidad}: Líder {formatearPesos(normalizado.lider)} ·
-        Unimarc {formatearPesos(normalizado.unimarc)}
+        Por {normalizado.unidad}: {supermercados.filter((t) => typeof normalizado[t.clave] === "number").map((t) => `${t.nombre} ${formatearPesos(normalizado[t.clave]!)}`).join(" · ")}
       </Text>
       <Text className="text-xs text-slate-500">
         Precio unitario redondeado. Compara productos equivalentes.

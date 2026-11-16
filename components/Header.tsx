@@ -5,6 +5,7 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { router, type Href } from "expo-router";
 import { Image, Pressable, Text, View } from "react-native";
+import { useCatalog } from "@/store/CatalogProvider";
 
 export default function Header({
   titulo,
@@ -13,6 +14,7 @@ export default function Header({
   titulo?: string;
   volverA?: Href;
 }) {
+  const { supermercados } = useCatalog();
   // Usa el historial si existe; si se abrió por enlace directo, reemplaza por la ruta de respaldo.
   function volver() {
     if (router.canGoBack()) router.back();
@@ -37,7 +39,7 @@ export default function Header({
         </Text>
         <View className="rounded-full border border-teal-100 bg-teal-50 px-3 py-2">
           <Text className="text-xs font-work-medium text-teal-800">
-            Líder · Unimarc
+            {supermercados.length} supermercados
           </Text>
         </View>
       </View>

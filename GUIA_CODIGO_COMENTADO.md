@@ -25,7 +25,7 @@ Esta guía complementa los comentarios en el código para preparar la evaluació
 | lint | expo lint | Revisar código con ESLint. |
 | reset-project | node ./scripts/reset-project.js | Referencia un archivo que no está presente en esta copia. |
 
-Los comandos de inicio no publican una aplicación. npm install instala dependencias; npm ci utiliza el lockfile y requiere coherencia con package.json. No hay un script test definido aunque existen archivos de pruebas.
+Los comandos de inicio no publican una aplicación. npm install instala dependencias; npm ci utiliza el lockfile y requiere coherencia con package.json. npm test ejecuta las pruebas de catálogo, Firestore, formularios y rutas.
 
 Las versiones declaradas son Expo ~54.0.36, React 19.1.0 y React Native 0.81.5. Sin prefijo, una versión es exacta; ~ permite parches y ^ permite actualizaciones compatibles según versionado semántico. package-lock.json registra las versiones resueltas y sus dependencias transitivas: es un archivo generado, no código para comentar línea por línea.
 
@@ -43,7 +43,7 @@ Las versiones declaradas son Expo ~54.0.36, React 19.1.0 y React Native 0.81.5. 
 | @react-navigation/bottom-tabs | Herramientas de pestañas; la barra actual es propia y usa enlaces. |
 | @react-navigation/elements | Elementos auxiliares de navegación. |
 | @expo/vector-icons | Iconos; las pantallas utilizan Ionicons. |
-| @react-native-async-storage/async-storage | Almacenamiento local asíncrono; guarda catálogo y lista como JSON. No es almacenamiento cifrado de secretos. |
+| @react-native-async-storage/async-storage | Almacenamiento local asíncrono; guarda la lista personal y conserva el catálogo anterior como respaldo. No es almacenamiento cifrado de secretos. |
 | nativewind | Clases de Tailwind en React Native. |
 | expo-font | Carga de fuentes con useFonts. |
 | expo-splash-screen | Pantalla inicial y control de cuándo ocultarla. |
@@ -126,7 +126,7 @@ Las versiones declaradas son Expo ~54.0.36, React 19.1.0 y React Native 0.81.5. 
 - .vscode/extensions.json: recomienda la extensión de Expo para VS Code.
 - .vscode/settings.json: configura acciones explícitas al guardar para corregir código y organizar importaciones y miembros cuando el editor las soporta.
 - AGENTS.md y CLAUDE.md: instrucciones para asistentes; no ejecutan la aplicación. CLAUDE.md remite a AGENTS.md.
-- assets/: recursos binarios. WorkSans-Bold existe, pero el layout carga Black, Light y Medium. Los productos usan 18 imágenes PNG con transparencia real en assets/images/productos; la manzana original se conserva. ProductImage muestra cada imagen con el mismo encuadre y ProductForm permite elegirla o usar la sugerida por el nombre.
+- assets/: recursos binarios. El layout carga WorkSans Black, Light y Medium. Los productos usan 18 imágenes PNG con transparencia real en assets/images/productos. ProductImage muestra cada imagen con el mismo encuadre y ProductForm permite elegirla o usar la sugerida por el nombre.
 
 ## 2. React: ejemplos que debes estudiar
 
@@ -147,7 +147,6 @@ Las versiones declaradas son Expo ~54.0.36, React 19.1.0 y React Native 0.81.5. 
 | Reinicio con key | Formulario y Comparar | Cambiar la key remonta el componente y reinicia su estado. |
 | Condiciones | Detalle y carrito | Ternarios y && muestran carga, errores y estados vacíos. |
 | Callbacks | ProductComparison | Un hijo comunica al padre el ID pulsado. |
-| forwardRef | CustomButton | Reenvía la referencia al Pressable interno. |
 | Accesibilidad | Enlaces y controles | Roles, etiquetas y estados ayudan a lectores de pantalla. |
 
 Los hooks se llaman al nivel superior del componente o de otro hook; no dentro de condiciones, bucles o eventos. Un efecto con [] se asocia al montaje; en desarrollo puede ejecutarse nuevamente para detectar problemas.
@@ -158,7 +157,7 @@ React organiza componentes y estado. React Native ofrece View, Text, Image, Pres
 
 ### Arranque y guardado
 
-Arranque: expo-router/entry → app/_layout.tsx → fuentes → CatalogProvider → lectura y validación de AsyncStorage → pantallas y barra inferior.
+Arranque: expo-router/entry → app/_layout.tsx → fuentes → CatalogProvider → inicialización/importación a Firestore → suscripciones a productos y supermercados → pantallas y barra inferior. AsyncStorage conserva la lista personal.
 
 Guardado: TextInput → useState → conversión de strings a números → validarProducto → guardar del contexto → guardarProducto → escritura JSON → setEstado → detalle y pantallas actualizadas.
 
@@ -179,16 +178,16 @@ Las escrituras se serializan con una cola. La UI publica los cambios después de
 | /compare/categories/[categoria] | Detalle de categoría. |
 | /offers | Ofertas y filtros. |
 | /cart | Lista de una unidad por producto y totales. |
-| /route | Sección pendiente: En proceso. |
+| /route | Reparte la lista por precio, permite ordenar las paradas y abrirlas en Google Maps. Origen y sucursales elegidos por el usuario, con dirección o coordenadas, sin GPS. |
 
 Link crea enlaces; push añade al historial; replace sustituye la entrada actual; back vuelve. useLocalSearchParams lee parámetros y usePathname identifica la ruta activa. La barra inferior es propia, no un Tabs.
 
-En web estática, generateStaticParams enumera IDs iniciales y categorías. Los productos posteriores se abren con la página fija /products/detail?id=ID. El ID no comparte los datos: el producto debe existir en el almacenamiento del dispositivo u origen web que abre el enlace.
+En web estática, generateStaticParams enumera IDs iniciales y categorías. Los productos posteriores se abren con la página fija /products/detail?id=ID. El ID no comparte los datos: el producto debe existir en el catálogo de Firestore al que se conecta el dispositivo.
 
 ### Fórmulas y límites reales
 
-- Producto: ahorro = diferencia absoluta entre los dos precios. Empate: ahorro cero.
-- Compra en una tienda: primero suma los precios de cada tienda y después compara ambos totales.
+- Producto: diferencia = mayor menos menor precio registrado entre las cuatro tiendas. Empate: ahorro cero.
+- Compra en una tienda: primero suma los precios de cada tienda y después compara solo los totales completos.
 - Categoría: filtra sus productos y compara sus totales.
 - Promedio por categoría: suma las diferencias y divide por el número de categorías. Con la semilla: $240.
 - Banner de ofertas: suma diferencias individuales de los productos visibles; no mide descuentos históricos.
@@ -199,11 +198,11 @@ Manzanas más detergente: Líder $5.780 y Unimarc $5.680; comprar ambos en Unima
 
 Hay 18 productos ficticios iniciales: 6 Alimentos y 3 por cada otra categoría. Las tiendas están a 0,4 y 1,1 km simulados. No se consulta GPS. Hoy y semana son etiquetas; hoy se incluye en semana. El radio de ofertas se aplica a la tienda ganadora y excluye empates. El carrito no tiene pagos ni cantidades configurables.
 
-AsyncStorage conserva productos, lista de IDs y siguienteId con la clave savely.catalog.v1. Los filtros y la selección son temporales. No hay sincronización entre dispositivos ni un backend de precios en este código.
+Firestore conserva los productos, sus precios, los supermercados y el contador de IDs. CatalogProvider recibe los cambios en tiempo real. AsyncStorage conserva la lista personal en savely.lista.v2 y deja savely.catalog.v1 como respaldo de la migración. Los filtros y la selección son temporales. Los precios iniciales siguen siendo de demostración, sin proveedor comercial de precios.
 
-### Implementación anterior y pruebas
+### Pruebas del proyecto actual
 
-legacy/app-stack y models/Producto.ts pertenecen a una versión anterior: cuatro tiendas, URLs de imagen y otro modelo. Las pantallas antiguas importan funciones ya no exportadas en products.store.ts. Se conservaron fuera de app para evitar rutas duplicadas y se excluyeron de TypeScript mediante tsconfig.json. Expo Router carga las pantallas actuales de app; el código histórico está disponible para consulta en legacy.
+Expo Router carga las pantallas actuales de app. El código histórico sin uso se retiró durante la limpieza autorizada y quedó en un respaldo externo al proyecto.
 
 catalog.test.ts y product-comparison.test.ts usan node:test y assert. Cubren CRUD, validaciones, inmutabilidad, lectura JSON, selección, filtros y cálculos. No equivalen a pruebas de interfaz o de AsyncStorage real.
 
@@ -224,7 +223,13 @@ catalog.test.ts y product-comparison.test.ts usan node:test y assert. Cubren CRU
 13. ¿Por qué comparar totales en lugar de sumar ahorros? Los productos pueden convenir en tiendas diferentes.
 14. ¿El radio utiliza GPS? No: distancias fijas de demostración.
 15. ¿Por qué detalle fijo y dinámico? La ruta fija permite abrir productos creados después de exportar la web estática.
-16. ¿Todos los archivos pertenecen a la versión actual? No: hay pantallas antiguas con importaciones incompatibles.
+16. ¿Por qué conservar detalle fijo y dinámico? La ruta fija abre productos nuevos y la dinámica mantiene compatibles los enlaces iniciales.
 17. ¿Qué falta para datos reales? Fuente de precios, backend, usuarios y sincronización; ubicación real si se implementa cercanía.
 
-Orden de lectura: configuración → Product.ts → catalog.ts → CatalogProvider.tsx → layout raíz → formulario y detalle → cálculos → Comparar, categorías, ofertas y carrito → componentes → pruebas → versión anterior.
+Orden de lectura: configuración → Product.ts → catalog.ts → CatalogProvider.tsx → layout raíz → formulario y detalle → cálculos → Comparar, categorías, ofertas y carrito → componentes → pruebas.
+
+
+Actualización Firebase: consulta README.md y services/catalogo.ts para la migración idempotente, los IDs transaccionales, la importación del catálogo local y npm test. La arquitectura de persistencia descrita aquí se ha actualizado a Firestore.
+
+
+Actualización de cuatro tiendas: los precios de Líder, Unimarc, Jumbo y Santa Isabel son opcionales, pero cada producto exige al menos uno. Los valores ausentes no son ceros. Inicio y Carrito usan el rediseño recibido. Ruta permite configurar origen, sucursales concretas y transporte, y guarda ubicaciones en este dispositivo; no hay precios ni ubicaciones nuevos generados automáticamente. Consulta README.md para la arquitectura actual.

@@ -40,11 +40,14 @@ export function validarProducto(p: ProductInput): string | null {
     return "Selecciona la disponibilidad de la oferta.";
   // Los precios deben ser enteros seguros, positivos y dentro del límite; un teclado numérico no basta.
   if (
-    ![p.precios.lider, p.precios.unimarc].every(
+    !p.precios || typeof p.precios !== "object" || Array.isArray(p.precios) ||
+    Object.keys(p.precios).some((clave) => !["lider", "unimarc", "jumbo", "santaIsabel"].includes(clave)) ||
+    Object.values(p.precios).filter((v) => v !== undefined).length === 0 ||
+    !Object.values(p.precios).filter((v) => v !== undefined).every(
       (v) => Number.isSafeInteger(v) && v > 0 && v <= 100000000,
     )
   )
-    return "Los precios deben ser pesos enteros, entre $1 y $100.000.000.";
+    return "Registra al menos un precio en pesos enteros, entre $1 y $100.000.000.";
   return null;
 }
 
@@ -62,6 +65,12 @@ export function guardarProducto(
   // Recorta espacios y asigna la imagen elegida o una sugerencia por nombre y categoría.
   const producto: Product = {
     ...input,
+    precios: {
+      ...(input.precios.lider !== undefined ? { lider: input.precios.lider } : {}),
+      ...(input.precios.unimarc !== undefined ? { unimarc: input.precios.unimarc } : {}),
+      ...(input.precios.jumbo !== undefined ? { jumbo: input.precios.jumbo } : {}),
+      ...(input.precios.santaIsabel !== undefined ? { santaIsabel: input.precios.santaIsabel } : {}),
+    },
     nombre: input.nombre.trim(),
     descripcion: input.descripcion.trim(),
     tamano: input.tamano.trim(),

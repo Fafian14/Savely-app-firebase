@@ -124,7 +124,7 @@ test("ofertas: periodo, radio y lista se combinan y cambian el ahorro", () => {
     18,
   );
   const cercanos = filtrarOfertas(productos, [], { ...filtros, radio: 0.5 });
-  assert.ok(cercanos.every((p) => p.precios.lider < p.precios.unimarc));
+  assert.ok(cercanos.every((p) => p.precios.lider! < p.precios.unimarc!));
   assert.equal(
     filtrarOfertas(productos, [], { ...filtros, soloLista: true }).length,
     0,

@@ -10,10 +10,11 @@ export default function StoreBadge({
 }: {
   supermercado: Supermercado;
 }) {
+  const colores = { "Líder": "bg-blue-600", "Unimarc": "bg-red-600", "Jumbo": "bg-green-700", "Santa Isabel": "bg-orange-700" };
   // Un ternario elige azul para Líder y rojo para Unimarc; las clases completas permiten detectar estilos.
   return (
     <View
-      className={`self-start rounded-lg px-2 py-1 ${supermercado === "Líder" ? "bg-blue-600" : "bg-red-600"}`}
+      className={`self-start rounded-lg px-2 py-1 ${colores[supermercado]}`}
     >
       <Text className="text-xs font-work-medium text-white">
         {supermercado}
