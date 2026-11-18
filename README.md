@@ -2,6 +2,55 @@
 
 Expo SDK 54 / React Native / Expo Router / TypeScript / NativeWind.
 
+## Ajuste de precios de comparación
+
+La interfaz no muestra etiquetas de precios de prueba. Se retiró el enlace
+“Gestionar catálogo” de Comparar; la administración de cada producto conserva
+su botón y la protección por contraseña en el detalle.
+
+Añadir producto también requiere el mismo acceso de administrador. La pantalla
+de creación, el servicio de guardado y las reglas exigen autorización, incluido
+el acceso directo a `/products/form`. Para que el servidor aplique esta protección,
+publica las reglas actualizadas con `firebase-tools deploy --only firestore:rules
+--project savely-4f272` antes de distribuir el nuevo APK.
+
+`npm run firebase:ajustar-precios` consulta el ajuste propuesto sin escribir.
+Solo modifica los precios provisionales identificados internamente en los
+documentos. Toma como referencia los precios ya registrados y aplica variaciones
+acotadas; no consulta precios de mercado ni reemplaza los valores registrados
+sin marca provisional.
+
+Para aplicarlo desde la sesión de Windows que tiene Firebase CLI autorizado:
+
+```powershell
+Set-Location "D:\Savely-Movil-main"
+npx.cmd --yes --package firebase-tools@15.36.0 --call "npm run firebase:ajustar-precios -- --aplicar"
+```
+
+El comando crea un respaldo en `Documents\Savely-respaldos`, utiliza un lote
+atómico y rechaza el guardado si un documento cambió después de leerlo. No toca
+IDs, nombres, descripciones, usuarios ni reglas. La marca interna de procedencia
+se conserva para no confundir valores calculados con precios verificados.
+
+## Validación del catálogo
+
+Nombre, detalles y presentación admiten únicamente letras, números y espacios,
+conservando tildes y ñ. Se muestra el error al escribir caracteres especiales.
+Solo contenido admite coma o punto decimal; los precios admiten únicamente dígitos.
+Los textos históricos con puntuación se conservan al leer y deben corregirse al editar.
+
+Para este catálogo de supermercado, el contenido debe ser positivo y no superar
+50 kg / 50.000 g, 50 L / 50.000 ml o 1.000 ud. Las unidades (`ud`) deben ser
+enteras. Cada precio conocido debe ser un entero entre $1 y $500.000 CLP;
+se requiere al menos un precio. Son límites de negocio, configurados en
+`store/catalog.ts`, no límites físicos universales. El formulario muestra los
+máximos y aplica estas reglas tanto al crear como al editar.
+
+Las validaciones estructurales y los límites también se aplican al leer datos
+guardados. No se corrigen ni eliminan documentos automáticamente. Para activar
+la administración y proteger edición y borrado en el servidor, sigue
+`ADMINISTRACION.md` y publica `firestore.rules`. La compilación del APK no publica reglas.
+
 ## Catálogo conectado a Firestore
 
 El catálogo compartido se lee de Cloud Firestore (`savely-4f272`), no del arreglo
@@ -69,7 +118,8 @@ ID asignado. Los borrados locales anteriores no borran el catálogo compartido.
 La clave antigua `savely.catalog.v1` se conserva intacta como respaldo.
 
 La lista de compra es personal y sigue en AsyncStorage (`savely.lista.v2`). No se
-comparte entre usuarios ni dispositivos, porque aún no existe inicio de sesión.
+comparte entre usuarios ni dispositivos. El acceso de administrador protege
+las altas, la edición y la eliminación del catálogo; no sincroniza listas personales.
 Los productos borrados dejan de aparecer también en la lista. Los filtros y la
 selección de comparación son temporales.
 
@@ -86,10 +136,10 @@ usen el mismo ID. No uses IDs manuales mayores que el contador sin actualizarlo.
 Los productos nuevos usan `/products/detail?id=ID` y `/products/form?id=ID`, rutas
 compatibles con la exportación web estática.
 
-La pantalla **Probar conexión a Firebase** (`/firebase`) conserva la demostración
-del PDF, que envía un saludo a `users`. Esa colección no almacena el catálogo.
-No se ejecutó `reset-project` ni se cambiaron las reglas de seguridad.
-La cuenta cliente debe tener permisos para las cuatro rutas de catálogo indicadas.
+Se retiró el botón de prueba y la pantalla de demostración. El enlace antiguo
+`/firebase` redirige al inicio. La carga presenta “Cargando productos de Savely”.
+El catálogo sigue conectado a Firestore. Las reglas preparadas en este repositorio
+necesitan publicarse siguiendo `ADMINISTRACION.md`.
 
 El catálogo y el detalle utilizan el diseño del ZIP: tarjetas con ID, buscador
 con botón para limpiar, imagen destacada y panel desplegable **Administrar

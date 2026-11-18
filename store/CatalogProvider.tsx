@@ -146,7 +146,7 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
 
   if (!listo) return (
     <View className="flex-1 items-center justify-center bg-slate-50 p-6">
-      {error ? aviso : <Text className="text-center text-slate-700">Cargando catálogo de Firebase…</Text>}
+      {error ? aviso : <Text className="text-center text-slate-700">Cargando productos de Savely…</Text>}
     </View>
   );
 

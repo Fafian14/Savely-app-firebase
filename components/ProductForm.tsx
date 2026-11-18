@@ -7,12 +7,13 @@ import { router } from "expo-router";
 import { Pressable, Text, TextInput, View } from "react-native";
 import type { Product, ProductInput, ImagenProducto } from "@/models/Product";
 import { categorias } from "@/store/products.store";
-import { ofertas, unidades, validarProducto } from "@/store/catalog";
+import { limitesContenido, ofertas, unidades, validarProducto } from "@/store/catalog";
 import { useCatalog } from "@/store/CatalogProvider";
 import ProductImage from "./ProductImage";
 import { elegirImagen, opcionesImagen } from "@/store/product-images";
 import { mensajeErrorCatalogo } from "@/services/catalogo";
 import { formatearContenido, parsearCamposNumericos } from "@/store/product-form";
+import { validarCaracteresCampo } from "@/store/input-validation";
 
 export default function ProductForm({ producto }: { producto?: Product }) {
   const { guardar, supermercados } = useCatalog();
@@ -69,8 +70,8 @@ export default function ProductForm({ producto }: { producto?: Product }) {
       max: 9,
       numeric: true,
     },
-    { label: "Precio en Jumbo (opcional)", value: jumbo, set: setJumbo, max: 9, numeric: true },
-    { label: "Precio en Santa Isabel (opcional)", value: santaIsabel, set: setSantaIsabel, max: 9, numeric: true },
+    { label: "Precio en Jumbo", value: jumbo, set: setJumbo, max: 9, numeric: true },
+    { label: "Precio en Santa Isabel", value: santaIsabel, set: setSantaIsabel, max: 9, numeric: true },
   ];
   // Construye ProductInput, valida, espera el almacenamiento y navega al detalle si tiene éxito.
   async function guardarCambios() {
@@ -90,6 +91,7 @@ export default function ProductForm({ producto }: { producto?: Product }) {
       categoria,
       oferta,
       precios: numeros.precios,
+      ...(producto?.preciosPrueba !== undefined ? { preciosPrueba: producto.preciosPrueba.filter((clave) => numeros.precios[clave] === producto.precios[clave]) } : {}),
     };
     // Una validación fallida interrumpe el guardado antes de tocar el almacenamiento.
     const mensaje = validarProducto(input);
@@ -178,6 +180,11 @@ export default function ProductForm({ producto }: { producto?: Product }) {
             multiline={c.label === "Detalles"}
             className="min-h-12 rounded-xl border border-slate-200 px-3 py-3 text-base text-slate-800"
           />
+          {!!validarCaracteresCampo(c.value, c.numeric ? c.label === "Contenido" ? "contenido" : "precio" : "texto") && (
+            <Text accessibilityRole="alert" className="mt-1 text-sm text-red-700">
+              {c.label}: {validarCaracteresCampo(c.value, c.numeric ? c.label === "Contenido" ? "contenido" : "precio" : "texto")}
+            </Text>
+          )}
         </View>
       ))}
       <Text className="text-sm font-work-medium text-slate-800">Categoría</Text>
@@ -194,6 +201,9 @@ export default function ProductForm({ producto }: { producto?: Product }) {
       </View>
       <Text className="text-sm font-work-medium text-slate-800">
         Unidad del contenido
+      </Text>
+      <Text className="text-sm text-slate-600">
+        Contenido máximo: {limitesContenido[unidad]} {unidad}.{unidad === "ud" ? " Usa unidades enteras, sin fracciones." : " Se permiten decimales."} Precio máximo por tienda: $500.000.
       </Text>
       <View className="flex-row flex-wrap gap-2">
         {unidades.map((u) => (

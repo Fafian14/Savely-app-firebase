@@ -13,6 +13,7 @@ import type { Supermarket } from "../models/Supermarket";
 import { guardarProducto, leerCatalogo, type CatalogState } from "../store/catalog";
 import { productos as semilla } from "../store/products.store";
 import { supermercadosIniciales } from "../store/supermarkets.store";
+import { exigirAdministrador } from "./admin";
 
 const productosRef = collection(db, "productos");
 const supermercadosRef = collection(db, "supermercados");
@@ -22,7 +23,7 @@ function siguienteId(data: DocumentData | undefined): number {
   if (
     !data || data.version !== 1 || data.inicializado !== true ||
     !Number.isSafeInteger(data.siguienteId) || data.siguienteId < 1
-  ) throw new Error("La configuración del catálogo en Firebase no es válida.");
+  ) throw new Error("La configuración del catálogo no es válida.");
   return data.siguienteId;
 }
 
@@ -41,6 +42,7 @@ export function leerProductoRemoto(data: unknown, documentoId: string): Product 
       ...(p.precios.unimarc !== undefined ? { unimarc: p.precios.unimarc } : {}),
       ...(p.precios.jumbo !== undefined ? { jumbo: p.precios.jumbo } : {}),
       ...(p.precios.santaIsabel !== undefined ? { santaIsabel: p.precios.santaIsabel } : {}) },
+    ...(p.preciosPrueba !== undefined ? { preciosPrueba: [...p.preciosPrueba] } : {}),
     imagen: p.imagen, contenido: p.contenido, unidad: p.unidad,
     tamano: p.tamano, oferta: p.oferta,
   };
@@ -147,7 +149,7 @@ export async function migrarCatalogoLocal(
     // Comprueba que ningún ID reservado se haya ocupado manualmente en la consola.
     const destinos = await Promise.all(escrituras.filter((e) => e.nuevo).map((e) => tx.get(doc(productosRef, String(e.producto.id)))));
     if (destinos.some((d) => d.exists()))
-      throw new Error("El contador de Firebase coincide con un producto existente. Revisa configuracion/catalogo.");
+      throw new Error("El contador del catálogo coincide con un producto existente. Contacta al administrador.");
     for (const e of escrituras) {
       tx.set(doc(productosRef, String(e.producto.id)), {
         ...e.producto,
@@ -161,6 +163,7 @@ export async function migrarCatalogoLocal(
 }
 
 export async function guardarProductoRemoto(input: ProductInput, id?: number): Promise<Product> {
+  await exigirAdministrador();
   return runTransaction(db, async (tx) => {
     const config = await tx.get(contadorRef);
     const proximo = siguienteId(config.data());
@@ -171,7 +174,7 @@ export async function guardarProductoRemoto(input: ProductInput, id?: number): P
     const previo = await tx.get(ref);
     if (id !== undefined && !previo.exists()) throw new Error("Este producto ya no existe.");
     if (id === undefined && previo.exists())
-      throw new Error("El contador coincide con un producto existente. Revisa configuracion/catalogo en Firebase.");
+      throw new Error("El contador coincide con un producto existente. Contacta al administrador.");
     const actual = previo.exists() ? leerProductoRemoto(previo.data(), String(destino)) : undefined;
     const estado = guardarProducto({
       productos: actual ? [actual] : [], lista: [], siguienteId: proximo, versionImagenes: 1,
@@ -186,6 +189,7 @@ export async function guardarProductoRemoto(input: ProductInput, id?: number): P
 }
 
 export async function eliminarProductoRemoto(id: number): Promise<void> {
+  await exigirAdministrador();
   if (!Number.isSafeInteger(id) || id < 1) throw new Error("El ID del producto no es válido.");
   await runTransaction(db, async (tx) => {
     const ref = doc(productosRef, String(id));
@@ -215,7 +219,7 @@ export function observarSupermercados(
     if (snapshot.metadata.hasPendingWrites) return;
     try {
       const tiendas = snapshot.docs.map((d) => leerSupermercadoRemoto(d.data(), d.id));
-      if (tiendas.length !== supermercadosIniciales.length) throw new Error("Faltan supermercados en Firebase. Ejecuta la migración del catálogo.");
+      if (tiendas.length !== supermercadosIniciales.length) throw new Error("Faltan supermercados en el catálogo. Contacta al administrador.");
       recibir(tiendas.sort((a, b) => supermercadosIniciales.findIndex((s) => s.id === a.id) - supermercadosIniciales.findIndex((s) => s.id === b.id)), snapshot.metadata.fromCache);
     } catch (error) { fallar(error); }
   }, fallar);
@@ -225,8 +229,8 @@ export function mensajeErrorCatalogo(error: unknown): string {
   const causa = error as { code?: string; message?: string } | null;
   const codigo = causa?.code?.replace(/^firestore\//, "");
   if (codigo === "permission-denied" || codigo === "unauthenticated")
-    return "Firebase no permitió acceder al catálogo. Revisa los permisos de productos, supermercados, configuracion y migracionesCatalogo.";
+    return "No tienes permisos para realizar esta operación en el catálogo.";
   if (codigo === "unavailable" || codigo === "deadline-exceeded")
-    return "No pudimos conectar con Firebase. Revisa tu conexión a internet e inténtalo nuevamente.";
-  return causa?.message || "No se pudo completar la operación con Firebase. Inténtalo nuevamente.";
+    return "No pudimos cargar el catálogo. Revisa tu conexión a internet e inténtalo nuevamente.";
+  return causa?.message || "No se pudo completar la operación. Inténtalo nuevamente.";
 }

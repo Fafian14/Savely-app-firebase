@@ -1,11 +1,22 @@
 import type { Product, Supermercado } from "../models/Product";
 import type { Supermarket } from "../models/Supermarket";
 import { supermercadosIniciales } from "./supermarkets.store";
+import { precioMaximo } from "./catalog";
 
 export interface ParadaRuta {
   tienda: Supermercado;
   productos: Product[];
   total: number;
+}
+
+// Una visita opcional no depende de que la tienda gane la comparación de precios.
+export function obtenerParadas(
+  tiendas: readonly Supermercado[],
+  plan: { porTienda: Record<Supermercado, Product[]>; totales: Record<Supermercado, number> },
+  visitarTodas: boolean,
+): ParadaRuta[] {
+  return tiendas.map((tienda) => ({ tienda, productos: plan.porTienda[tienda], total: plan.totales[tienda] }))
+    .filter((parada) => visitarTodas || parada.productos.length > 0);
 }
 
 function validarTiendas(tiendas: readonly Supermercado[], disponibles: readonly Supermarket[]) {
@@ -32,7 +43,7 @@ export function distribuirCompra(
     const conPrecio = elegidas.filter((tienda) => {
       const precio = producto.precios[tienda.id];
       if (precio === undefined) { incompletas.add(tienda.nombre); return false; }
-      if (!Number.isSafeInteger(precio) || precio <= 0 || precio > 100000000)
+      if (!Number.isSafeInteger(precio) || precio <= 0 || precio > precioMaximo)
         throw new Error(`El precio de ${producto.nombre} en ${tienda.nombre} no es válido.`);
       totalPorTienda[tienda.nombre] += precio;
       return true;

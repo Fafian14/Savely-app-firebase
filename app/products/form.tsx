@@ -3,6 +3,9 @@
  * Ambas operaciones reutilizan ProductForm.
  */
 import { useLocalSearchParams } from "expo-router";
+import { useState } from "react";
+import AdminAccess from "@/components/AdminAccess";
+import { administracionVigente } from "@/services/admin";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -18,6 +21,7 @@ export default function ProductFormScreen() {
   // Los parámetros de URL son texto: la búsqueda convierte el ID numérico del producto a string.
   const { id } = useLocalSearchParams<{ id?: string }>();
   const { productos } = useCatalog();
+  const [acceso, setAcceso] = useState(administracionVigente);
   const producto = productos.find((p) => String(p.id) === id);
   // KeyboardAvoidingView aplica padding en iOS para que el teclado no tape el formulario.
   // Si se pide un ID inexistente muestra un mensaje. La key reinicia los campos al cambiar de producto.
@@ -37,6 +41,8 @@ export default function ProductFormScreen() {
           />
           {id && !producto ? (
             <Text className="text-slate-700">Producto no encontrado.</Text>
+          ) : !(acceso && administracionVigente()) ? (
+            <AdminAccess onAuthorized={() => setAcceso(true)} />
           ) : (
             <ProductForm key={id ?? "nuevo"} producto={producto} />
           )}

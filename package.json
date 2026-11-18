@@ -9,7 +9,8 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint",
-    "test": "node --require ./scripts/register-typescript.cjs --test store/catalog.test.ts store/product-comparison.test.ts tests/firebase.test.cjs tests/catalogo.firebase.test.cjs tests/product-form.test.cjs store/route-planner.test.ts",
+    "test": "node --require ./scripts/register-typescript.cjs --test store/catalog.test.ts store/product-comparison.test.ts store/comparison-prices.test.ts tests/comparison-prices-migration.test.cjs tests/firebase.test.cjs tests/catalogo.firebase.test.cjs tests/product-form.test.cjs store/route-planner.test.ts tests/admin.test.cjs tests/product-access.test.cjs",
+    "firebase:ajustar-precios": "node scripts/ajustar-precios-comparacion.cjs",
     "firebase:migrate": "node scripts/migrar-catalogo.cjs"
   },
   "dependencies": {

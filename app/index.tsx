@@ -59,7 +59,7 @@ export default function HomeScreen() {
             <Ionicons name="arrow-forward" size={16} color="#254b38" />
           </Link>
           <Text className="mt-2 text-center text-[10px] leading-4 text-[#d6e5d8]">
-            Estimación con precios de demostración · No incluye costo de traslado
+            Estimación según los precios registrados · No incluye costo de traslado
           </Text>
         </View>
         <LocalOffers />
@@ -119,7 +119,6 @@ export default function HomeScreen() {
             );
           })}
         </View>
-        <Link href="/firebase" className="mt-4 py-3 text-center text-sm text-teal-700">Probar conexión a Firebase</Link>
         <Text className="mt-4 text-center text-xs leading-5 text-slate-500">
           Precios registrados · Una unidad de cada producto · Valores en CLP
         </Text>

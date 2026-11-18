@@ -10,6 +10,7 @@ import { useCatalog } from "@/store/CatalogProvider";
 import {
   crearEnlaceGoogleMaps,
   distribuirCompra,
+  obtenerParadas,
   reordenarParadas,
   type ParadaRuta,
   type UbicacionesRuta,
@@ -23,19 +24,14 @@ export default function RouteScreen() {
   const [tiendas, setTiendas] = useState<Supermercado[]>(supermercados.map((s) => s.nombre));
   const [abriendoMapa, setAbriendoMapa] = useState(false);
   const [errorMapa, setErrorMapa] = useState("");
+  const [visitarTodas, setVisitarTodas] = useState(false);
   const abriendoActual = useRef(false);
   const [ubicaciones, setUbicaciones] = useState<UbicacionesRuta>({ origen: "", sucursales: {}, modo: "walking" });
   const productosLista = productos.filter((producto) =>
     lista.includes(producto.id),
   );
   const plan = distribuirCompra(productosLista, tiendas, supermercados);
-  const paradas: ParadaRuta[] = tiendas
-    .map((tienda) => ({
-      tienda,
-      productos: plan.porTienda[tienda],
-      total: plan.totales[tienda],
-    }))
-    .filter((parada) => parada.productos.length > 0);
+  const paradas = obtenerParadas(tiendas, plan, visitarTodas);
 
   function alternarTienda(tienda: Supermercado) {
     setErrorMapa("");
@@ -210,6 +206,15 @@ export default function RouteScreen() {
               })}
             </View>
 
+            <Pressable accessibilityRole="checkbox" accessibilityLabel="Visitar todas las tiendas seleccionadas" aria-checked={visitarTodas}
+              accessibilityState={{ checked: visitarTodas }} onPress={() => { setVisitarTodas((v) => !v); setErrorMapa(""); }}
+              className="mb-5 flex-row items-center gap-3 rounded-xl border border-teal-200 bg-white p-4">
+              <Ionicons name={visitarTodas ? "checkbox" : "square-outline"} size={22} color="#0f766e" />
+              <View className="flex-1">
+                <Text className="font-work-medium text-slate-800">Visitar todas las tiendas seleccionadas</Text>
+                <Text className="mt-1 text-sm text-slate-600">Incluye hasta cuatro supermercados aunque alguno no tenga productos asignados. Desactiva para visitar solo las tiendas con compras.</Text>
+              </View>
+            </Pressable>
             {!!plan.sinPrecio.length && <Text accessibilityRole="alert" className="mb-4 rounded-xl bg-amber-50 p-4 text-amber-900">
               Faltan precios de {plan.sinPrecio.map((p) => p.nombre).join(", ")} en las tiendas elegidas. Regístralos o selecciona otras tiendas para completar la ruta.
             </Text>}

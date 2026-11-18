@@ -9,7 +9,8 @@ const ts = require('typescript');
 const filename = path.join(__dirname, '../components/ProductForm.tsx');
 const projectRequire = createRequire(filename);
 const { parsearCamposNumericos, formatearContenido } = projectRequire('../store/product-form.ts');
-const { productos } = projectRequire('../store/products.store.ts');
+const { productos: semilla } = projectRequire('../store/products.store.ts');
+const productos = semilla.map((p) => ({ ...p, descripcion: p.descripcion.replace(/[^\p{L}\p{M}\p{N} ]/gu, '') }));
 const source = ts.transpileModule(fs.readFileSync(filename, 'utf8'), {
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX },
 }).outputText;
@@ -68,6 +69,7 @@ function montarFormulario(producto) {
     guardados, navegaciones,
     escribir,
     valor(campo) { return nodes().find((n) => n.type === 'TextInput' && n.props.accessibilityLabel === campo).props.value; },
+    errores() { return nodes().filter((n) => n.props.accessibilityRole === 'alert').map((n) => [n.props.children].flat(Infinity).join('')).join('\n'); },
     async guardar() {
       const texto = (n) => typeof n === 'string' ? n : Array.isArray(n) ? n.map(texto).join('') : n?.props ? texto(n.props.children) : '';
       const button = nodes().find((n) => n.type === 'Pressable' && texto(n) === 'Guardar producto');
@@ -75,7 +77,8 @@ function montarFormulario(producto) {
       button.props.onPress();
       await Promise.resolve();
       await Promise.resolve();
-      return nodes().find((n) => n.props.accessibilityRole === 'alert')?.props.children ?? '';
+      const aviso = nodes().find((n) => n.props.accessibilityRole === 'alert')?.props.children ?? '';
+      return Array.isArray(aviso) ? aviso.join('') : aviso;
     },
     completar() {
       for (const [campo, value] of Object.entries({
@@ -134,14 +137,14 @@ test('formulario real: contenido con formato incorrecto no genera escrituras', a
     const form = montarFormulario();
     form.completar();
     form.escribir('Contenido', texto);
-    assert.match(await form.guardar(), /contenido/);
+    assert.match(await form.guardar(), /contenido/i);
     assert.equal(form.guardados.length, 0);
     assert.equal(form.navegaciones.length, 0);
   }
 });
 
 test('formulario real: conserva las validaciones de rango después de comprobar el formato', async () => {
-  for (const [campo, texto] of [['Contenido', '0'], ['Contenido', '100000.1'], ['Precio en Líder', '0'], ['Precio en Unimarc', '100000001']]) {
+  for (const [campo, texto] of [['Contenido', '0'], ['Contenido', '50000.1'], ['Precio en Líder', '0'], ['Precio en Unimarc', '500001']]) {
     const form = montarFormulario();
     form.completar();
     form.escribir(campo, texto);
@@ -152,15 +155,15 @@ test('formulario real: conserva las validaciones de rango después de comprobar 
 });
 
 test('formulario real: guarda coma y punto decimal como números y permite los límites superiores', async () => {
-  for (const [texto, esperado] of [['1,5', 1.5], ['0.5', 0.5], ['100000', 100000]]) {
+  for (const [texto, esperado] of [['1,5', 1.5], ['0.5', 0.5], ['50000', 50000]]) {
     const form = montarFormulario();
     form.completar();
     form.escribir('Contenido', texto);
-    form.escribir('Precio en Líder', '100000000');
+    form.escribir('Precio en Líder', '500000');
     assert.equal(await form.guardar(), '');
     assert.equal(form.guardados.length, 1);
     assert.equal(form.guardados[0].input.contenido, esperado);
-    assert.equal(form.guardados[0].input.precios.lider, 100000000);
+    assert.equal(form.guardados[0].input.precios.lider, 500000);
     assert.equal(form.navegaciones.length, 1);
   }
 });
@@ -192,7 +195,7 @@ test('presentación: el contenido se expande como decimal y conserva valores ent
 });
 
 test('formulario: Jumbo y Santa Isabel son opcionales, pero sus precios escritos se validan igual', async () => {
-  for (const campo of ['Precio en Jumbo (opcional)', 'Precio en Santa Isabel (opcional)']) {
+  for (const campo of ['Precio en Jumbo', 'Precio en Santa Isabel']) {
     for (const invalido of ['1.000', '1e3', '0x10', '0', '1,5', ' ']) {
       const form = montarFormulario();
       form.completar();
@@ -203,8 +206,8 @@ test('formulario: Jumbo y Santa Isabel son opcionales, pero sus precios escritos
   }
   const form = montarFormulario();
   form.completar();
-  form.escribir('Precio en Jumbo (opcional)', '1200');
-  form.escribir('Precio en Santa Isabel (opcional)', '1300');
+  form.escribir('Precio en Jumbo', '1200');
+  form.escribir('Precio en Santa Isabel', '1300');
   assert.equal(await form.guardar(), '');
   assert.equal(form.guardados[0].input.precios.jumbo, 1200);
   assert.equal(form.guardados[0].input.precios.santaIsabel, 1300);
@@ -212,7 +215,7 @@ test('formulario: Jumbo y Santa Isabel son opcionales, pero sus precios escritos
 
 test('formulario: vaciar un precio opcional lo elimina, sin inventar cero ni conservar el anterior', async () => {
   const form = montarFormulario({ ...productos[0], precios: { ...productos[0].precios, jumbo: 800, santaIsabel: 900 } });
-  form.escribir('Precio en Jumbo (opcional)', '');
+  form.escribir('Precio en Jumbo', '');
   assert.equal(await form.guardar(), '');
   assert.equal(Object.hasOwn(form.guardados[0].input.precios, 'jumbo'), false);
   assert.equal(form.guardados[0].input.precios.santaIsabel, 900);
@@ -225,7 +228,55 @@ test('formulario: registra un producto conocido solo en Jumbo y exige al menos u
   form.escribir('Precio en Unimarc', '');
   assert.match(await form.guardar(), /al menos un precio/);
   assert.equal(form.guardados.length, 0);
-  form.escribir('Precio en Jumbo (opcional)', '850');
+  form.escribir('Precio en Jumbo', '850');
   assert.equal(await form.guardar(), '');
   assert.deepEqual(JSON.parse(JSON.stringify(form.guardados[0].input.precios)), { jumbo: 850 });
+});
+
+test('formulario: rechaza textos inválidos sin escribir ni navegar al crear o editar', async () => {
+  for (const producto of [undefined, productos[0]]) {
+    for (const campo of ['Nombre', 'Detalles', 'Tamaño o presentación']) {
+      for (const valor of ['!!!@@@', 'Arroz\u0000', 'Arroz\u200b']) {
+        const form = montarFormulario(producto);
+        form.completar();
+        form.escribir(campo, valor);
+        assert.notEqual(await form.guardar(), '');
+        assert.equal(form.guardados.length, 0);
+        assert.equal(form.navegaciones.length, 0);
+      }
+    }
+  }
+});
+
+test('formulario: en edición aplica el límite de la unidad y rechaza unidades fraccionarias', async () => {
+  for (const [unidad, invalido] of [['kg', '50.1'], ['L', '50.1'], ['g', '50000.1'], ['ml', '50000.1'], ['ud', '0,5'], ['ud', '1001']]) {
+    const form = montarFormulario({ ...productos[0], unidad });
+    form.escribir('Contenido', invalido);
+    assert.notEqual(await form.guardar(), '');
+    assert.equal(form.guardados.length, 0);
+    assert.equal(form.navegaciones.length, 0);
+  }
+});
+
+test('formulario: muestra el rechazo de caracteres especiales mientras se escribe', () => {
+  for (const producto of [undefined, productos[0]]) {
+    for (const campo of ['Nombre', 'Detalles', 'Tamaño o presentación']) {
+      for (const signo of ['<', '>', '@', ',', '.', '-', '_']) {
+        const form = montarFormulario(producto);
+        form.escribir(campo, 'Producto' + signo);
+        assert.match(form.errores(), /No se permiten caracteres especiales/);
+        assert.equal(form.guardados.length, 0);
+        form.escribir(campo, 'Piña orgánica 2');
+        assert.equal(form.errores(), '');
+      }
+    }
+  }
+});
+
+test('formulario: mantiene las marcas de prueba y las retira cuando se cambia el precio', async () => {
+  const form = montarFormulario({ ...productos[0], precios: { lider: 990, jumbo: 1000, santaIsabel: 1000 }, preciosPrueba: ['jumbo', 'santaIsabel'] });
+  form.escribir('Precio en Jumbo', '1250');
+  assert.equal(await form.guardar(), '');
+  assert.deepEqual(JSON.parse(JSON.stringify(form.guardados[0].input.preciosPrueba)), ['santaIsabel']);
+  assert.equal(form.guardados[0].input.precios.jumbo, 1250);
 });

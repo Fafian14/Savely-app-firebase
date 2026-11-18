@@ -2,13 +2,31 @@
  * LÓGICA DEL CATÁLOGO: funciones sin interfaz ni acceso directo a AsyncStorage.
  * Validan y transforman datos creando nuevos objetos; el provider se encarga de persistirlos.
  */
-import type { Product, ProductInput } from "../models/Product";
+import { supermercados, type Product, type ProductInput } from "../models/Product";
 import { categorias } from "./products.store";
 import { elegirImagen, esImagenProducto } from "./product-images";
+import { validarCaracteresCampo } from "./input-validation";
 
 // as const conserva los valores literales de las unidades permitidas.
 export const unidades = ["g", "kg", "ml", "L", "ud"] as const;
 export const ofertas = ["hoy", "semana", "ninguna"] as const;
+// Límites de negocio para presentaciones de supermercado, no valores físicos universales.
+export const limitesContenido = { g: 50000, kg: 50, ml: 50000, L: 50, ud: 1000 } as const;
+export const precioMaximo = 500000;
+
+function validarTexto(valor: string, campo: string, maximo: number, multilinea = false, textoHistorico = false): string | null {
+  if (typeof valor !== "string" || !valor.trim() || valor.length > maximo)
+    return `${campo}: escribe un texto de hasta ${maximo} caracteres.`;
+  // Solo los detalles admiten saltos de línea. No elimina silenciosamente texto inválido.
+  const comprobable = multilinea ? valor.replace(/\r\n|[\r\n]/g, "") : valor;
+  if (/[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/u.test(comprobable))
+    return `${campo}: no se permiten caracteres de control o invisibles.`;
+  if (!/[\p{L}\p{N}]/u.test(valor))
+    return `${campo}: incluye al menos una letra o un número.`;
+  if (!textoHistorico && validarCaracteresCampo(valor, "texto"))
+    return `${campo}: No se permiten caracteres especiales.`;
+  return null;
+}
 // Estado persistido: catálogo, IDs de la lista y contador del próximo ID.
 export interface CatalogState {
   productos: Product[];
@@ -20,22 +38,26 @@ export interface CatalogState {
 
 // Devuelve el primer mensaje de error o null si todo es válido.
 // Esta comprobación se usa en el formulario, el guardado y la lectura del JSON.
-export function validarProducto(p: ProductInput): string | null {
+export function validarProducto(p: ProductInput, textoHistorico = false): string | null {
+  if (p.preciosPrueba !== undefined && (!Array.isArray(p.preciosPrueba) ||
+      new Set(p.preciosPrueba).size !== p.preciosPrueba.length ||
+      p.preciosPrueba.some((clave) => !supermercados.some((s) => s.clave === clave) || p.precios?.[clave] === undefined)))
+    return "La identificación de precios de prueba no es válida.";
   if (p.imagen !== undefined && !esImagenProducto(p.imagen))
     return "Selecciona una imagen válida del catálogo.";
-  // trim detecta texto vacío aunque contenga espacios. También se limita la longitud.
-  if (!p.nombre.trim() || p.nombre.length > 100)
-    return "Escribe un nombre de hasta 100 caracteres.";
+  const errorNombre = validarTexto(p.nombre, "Nombre", 100, false, textoHistorico);
+  if (errorNombre) return errorNombre;
   if (!categorias.includes(p.categoria))
     return "Selecciona una categoría válida.";
-  if (!p.descripcion.trim() || p.descripcion.length > 1000)
-    return "Escribe los detalles (máximo 1000 caracteres).";
-  if (!p.tamano.trim() || p.tamano.length > 80)
-    return "Escribe el tamaño o presentación (máximo 80 caracteres).";
-  // Rechaza NaN, Infinity y contenidos fuera del rango permitido.
-  if (!Number.isFinite(p.contenido) || p.contenido <= 0 || p.contenido > 100000)
-    return "El contenido debe ser mayor que cero y no superar 100.000.";
+  const errorDescripcion = validarTexto(p.descripcion, "Detalles", 1000, true, textoHistorico);
+  if (errorDescripcion) return errorDescripcion;
+  const errorTamano = validarTexto(p.tamano, "Tamaño o presentación", 80, false, textoHistorico);
+  if (errorTamano) return errorTamano;
   if (!unidades.includes(p.unidad)) return "Selecciona una unidad válida.";
+  if (!Number.isFinite(p.contenido) || p.contenido <= 0 || p.contenido > limitesContenido[p.unidad])
+    return `El contenido debe ser mayor que cero y no superar ${limitesContenido[p.unidad]} ${p.unidad}.`;
+  if (p.unidad === "ud" && !Number.isSafeInteger(p.contenido))
+    return "El contenido en ud debe ser un número entero, sin fracciones.";
   if (!ofertas.includes(p.oferta))
     return "Selecciona la disponibilidad de la oferta.";
   // Los precios deben ser enteros seguros, positivos y dentro del límite; un teclado numérico no basta.
@@ -44,10 +66,10 @@ export function validarProducto(p: ProductInput): string | null {
     Object.keys(p.precios).some((clave) => !["lider", "unimarc", "jumbo", "santaIsabel"].includes(clave)) ||
     Object.values(p.precios).filter((v) => v !== undefined).length === 0 ||
     !Object.values(p.precios).filter((v) => v !== undefined).every(
-      (v) => Number.isSafeInteger(v) && v > 0 && v <= 100000000,
+      (v) => Number.isSafeInteger(v) && v > 0 && v <= precioMaximo,
     )
   )
-    return "Registra al menos un precio en pesos enteros, entre $1 y $100.000.000.";
+    return "Registra al menos un precio en pesos enteros, entre $1 y $500.000.";
   return null;
 }
 
@@ -124,7 +146,7 @@ export function leerCatalogo(texto: string): CatalogState {
       !esImagenProducto(p.imagen) ||
       !Number.isSafeInteger(p.id) ||
       p.id < 1 ||
-      validarProducto(p)
+      validarProducto(p, true)
     )
       throw new Error("Producto guardado no válido.");
   }

@@ -4,11 +4,29 @@ import { productos } from "./products.store";
 import {
   crearEnlaceGoogleMaps,
   distribuirCompra,
+  obtenerParadas,
   reordenarParadas,
 } from "./route-planner";
 import { supermercadosIniciales } from "./supermarkets.store";
 import type { Supermercado } from "../models/Product";
 const sucursales = { "Líder": "Calle Uno 100, Concepción, Chile", "Unimarc": "Calle Dos 200, Concepción, Chile" };
+
+test("ruta opcional: permite tres o cuatro tiendas aunque no tengan compras asignadas", () => {
+  const tiendas: Supermercado[] = ["Líder", "Unimarc", "Jumbo", "Santa Isabel"];
+  const plan = distribuirCompra([productos[0]], tiendas);
+  assert.deepEqual(obtenerParadas(tiendas, plan, false).map((p) => p.tienda), ["Líder"]);
+  const todas = obtenerParadas(tiendas, plan, true);
+  assert.deepEqual(todas.map((p) => p.tienda), tiendas);
+  assert.equal(todas[2].productos.length, 0);
+  assert.equal(todas[2].total, 0);
+  assert.equal(obtenerParadas(tiendas.slice(0, 3), plan, true).length, 3);
+  const direcciones = { ...sucursales, Jumbo: "Calle Tres 300, Concepción, Chile", "Santa Isabel": "Calle Cuatro 400, Concepción, Chile" };
+  const orden = reordenarParadas(tiendas, todas.map((p) => p.tienda), 2, -1);
+  const url = new URL(crearEnlaceGoogleMaps("Calle Inicio 100, Concepción, Chile", orden, direcciones));
+  assert.equal(url.searchParams.get("waypoints"), [direcciones.Líder, direcciones.Jumbo, direcciones.Unimarc].join("|"));
+  assert.equal(url.searchParams.get("destination"), direcciones["Santa Isabel"]);
+  assert.deepEqual(tiendas, ["Líder", "Unimarc", "Jumbo", "Santa Isabel"]);
+});
 
 test("reparte la lista según el mejor precio y calcula el ahorro de la ruta", () => {
   const seleccionados = productos.filter((producto) =>
@@ -105,7 +123,7 @@ test("no permite seleccionar cero tiendas, tiendas repetidas ni tiendas sin prec
 });
 
 test("rechaza precios inválidos antes de recomendar una parada", () => {
-  for (const precio of [0, -1, 1.5, NaN, Infinity, 100000001]) {
+  for (const precio of [0, -1, 1.5, NaN, Infinity, 500001]) {
     const producto = { ...productos[0], precios: { lider: precio, unimarc: 1000 } };
     assert.throws(() => distribuirCompra([producto], ["Líder", "Unimarc"]), /no es válido/);
   }

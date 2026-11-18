@@ -1,0 +1,62 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function esAdmin() {
+      return request.auth != null &&
+        exists(/databases/$(database)/documents/administradores/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/administradores/$(request.auth.uid)).data.activo == true;
+    }
+    function precioValido(precios, tienda) {
+      return !(tienda in precios) || (precios[tienda] is int && precios[tienda] >= 1 && precios[tienda] <= 500000);
+    }
+    function textoValido(texto, maximo) {
+      return texto is string && texto.size() > 0 && texto.size() <= maximo &&
+        texto.matches('^[\\p{L}\\p{M}\\p{N} ]+$') && texto.matches('.*[\\p{L}\\p{N}].*');
+    }
+    function productoValido(p) {
+      return p.keys().hasAll(['id', 'nombre', 'descripcion', 'tamano', 'categoria', 'contenido', 'unidad', 'oferta', 'imagen', 'precios']) &&
+        p.keys().hasOnly(['id', 'nombre', 'descripcion', 'tamano', 'categoria', 'contenido', 'unidad', 'oferta', 'imagen', 'precios', 'preciosPrueba', 'creadoEn', 'actualizadoEn']) &&
+        p.id is int && p.id > 0 && textoValido(p.nombre, 100) && textoValido(p.descripcion, 1000) && textoValido(p.tamano, 80) &&
+        p.categoria in ['Alimentos', 'Bebidas', 'Limpieza', 'Higiene', 'Hogar'] &&
+        p.oferta in ['hoy', 'semana', 'ninguna'] &&
+        p.imagen in ['leche', 'manzana', 'platano', 'arroz', 'detergente', 'bebida', 'fideos', 'huevos', 'agua', 'jugo', 'lavalozas', 'limpiador', 'champu', 'jabon', 'pasta-dental', 'papel-absorbente', 'bolsas-basura', 'esponjas'] &&
+        p.contenido is number && p.contenido > 0 &&
+        ((p.unidad in ['kg', 'L'] && p.contenido <= 50) ||
+         (p.unidad in ['g', 'ml'] && p.contenido <= 50000) ||
+         (p.unidad == 'ud' && p.contenido is int && p.contenido <= 1000)) &&
+        p.precios is map && p.precios.keys().size() > 0 &&
+        (!('preciosPrueba' in p) || (p.preciosPrueba is list && p.preciosPrueba.hasOnly(['lider', 'unimarc', 'jumbo', 'santaIsabel']) && p.precios.keys().hasAll(p.preciosPrueba))) &&
+        p.precios.keys().hasOnly(['lider', 'unimarc', 'jumbo', 'santaIsabel']) &&
+        precioValido(p.precios, 'lider') && precioValido(p.precios, 'unimarc') &&
+        precioValido(p.precios, 'jumbo') && precioValido(p.precios, 'santaIsabel');
+    }
+    match /administradores/{uid} {
+      allow get: if request.auth != null && request.auth.uid == uid;
+      allow list, write: if false;
+    }
+    match /productos/{id} {
+      allow read: if true;
+      allow create: if esAdmin() && productoValido(request.resource.data) && id == string(request.resource.data.id) &&
+        request.resource.data.id == get(/databases/$(database)/documents/configuracion/catalogo).data.siguienteId &&
+        getAfter(/databases/$(database)/documents/configuracion/catalogo).data.siguienteId == request.resource.data.id + 1;
+      allow update: if esAdmin() && productoValido(request.resource.data) && request.resource.data.id == resource.data.id;
+      allow delete: if esAdmin();
+    }
+    match /supermercados/{id} {
+      allow read: if true;
+      allow write: if esAdmin();
+    }
+    match /configuracion/catalogo {
+      allow read: if true;
+      allow create, delete: if esAdmin();
+      allow update: if esAdmin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['siguienteId']) &&
+        request.resource.data.siguienteId is int && request.resource.data.siguienteId == resource.data.siguienteId + 1 &&
+        !exists(/databases/$(database)/documents/productos/$(string(resource.data.siguienteId))) &&
+        getAfter(/databases/$(database)/documents/productos/$(string(resource.data.siguienteId))).data.id == resource.data.siguienteId;
+    }
+    match /migracionesCatalogo/{id} {
+      allow read, write: if esAdmin();
+    }
+    match /{document=**} { allow read, write: if false; }
+  }
+}

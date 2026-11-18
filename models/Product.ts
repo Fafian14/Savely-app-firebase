@@ -36,6 +36,8 @@ export interface Product {
   nombre: string;
   descripcion: string;
   precios: Precios;
+  // Solo las tiendas enumeradas contienen valores de demostración, no precios reales.
+  preciosPrueba?: ClavePrecio[];
   imagen: ImagenProducto;
   categoria: Categoria;
   // Cantidad del envase. Se combina con unidad para calcular el precio por kg, L o unidad.

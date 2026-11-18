@@ -111,7 +111,7 @@ export default function ProductsScreen() {
             </Text>
           </View>
         )}
-        <Text className="mt-4 text-center text-[11px] leading-4 text-slate-500">Precios de demostración en CLP para comparar alternativas; confirma valores y disponibilidad en cada supermercado.</Text>
+        <Text className="mt-4 text-center text-[11px] leading-4 text-slate-500">Precios en CLP; confirma valores y disponibilidad en cada supermercado.</Text>
       </View>
     </ScrollView>
   );

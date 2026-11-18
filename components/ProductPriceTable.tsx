@@ -54,7 +54,7 @@ export default function ProductPriceTable({
                 return (
                   <View key={tienda.clave} className={`w-[48%] rounded-2xl border p-3 ${mejor ? "border-[#d4e5d4] bg-[#f1f7ef]" : "border-slate-100 bg-slate-50"}`}>
                     <StoreBadge supermercado={tienda.nombre} />
-                    <Text className={`mt-2 font-work-medium ${mejor ? "text-[#286344]" : "text-slate-800"}`}>{typeof precio === "number" ? formatearPesos(precio) : "Sin precio registrado"}</Text>
+                    <Text className={`mt-2 font-work-medium ${mejor ? "text-[#286344]" : "text-slate-800"}`}>{typeof precio === "number" ? formatearPesos(precio) : "No se encontró precio"}</Text>
                     {typeof precioUnidad === "number" && (
                       <Text className="mt-0.5 text-[10px] text-slate-500">{formatearPesos(precioUnidad)}/{normalizado.unidad}</Text>
                     )}

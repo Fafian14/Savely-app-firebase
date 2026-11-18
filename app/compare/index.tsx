@@ -74,9 +74,6 @@ function ComparisonContent({ productoInicial }: { productoInicial?: number }) {
     >
       <View className="mx-auto w-full max-w-2xl px-4 pt-4">
         <Header titulo="Comparar productos" />
-        <Link href="/products" className="mb-4 py-2 text-teal-700">
-          Gestionar catálogo ›
-        </Link>
         <View className="mb-4 flex-row items-center rounded-2xl border border-slate-200 bg-white px-3 shadow-sm">
           <Ionicons name="search-outline" size={22} color="#64748b" />
           <TextInput

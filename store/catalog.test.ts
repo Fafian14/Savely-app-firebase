@@ -5,7 +5,7 @@
  */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { productos } from "./products.store";
+import { productos as semilla } from "./products.store";
 import {
   eliminarProducto,
   guardarProducto,
@@ -15,6 +15,49 @@ import {
 } from "./catalog";
 import { filtrarOfertas, ahorroOfertas } from "./offers";
 import { precioPorUnidad, resumirCategoria } from "./product-comparison";
+// Las nuevas escrituras usan textos alfanuméricos; la semilla histórica se prueba aparte.
+const productos = semilla.map((p) => ({ ...p, descripcion: p.descripcion.replace(/[^\p{L}\p{M}\p{N} ]/gu, "") }));
+
+test("textos: admite letras y números; rechaza signos y controles en nuevas escrituras", () => {
+  assert.equal(validarProducto({ ...productos[0], nombre: "Piña orgánica 2", descripcion: "Producto fresco", tamano: "Pack x 6 500 ml" }), null);
+  assert.equal(validarProducto({ ...productos[0], nombre: "Pin\u0303a" }), null);
+  for (const campo of ["nombre", "descripcion", "tamano"] as const) {
+    for (const texto of ["!!!@@@", "🥛", "Arroz<", "Arroz>", "Arroz@", "Arroz,", "Arroz.", "Arroz-", "Arroz_", "Arroz\u0000", "Arroz\t", "Arroz\u007f", "Arroz\u200b", "Arroz\u202e", "Arroz\u2028"]) {
+      assert.ok(validarProducto({ ...productos[0], [campo]: texto }), `${campo}: ${JSON.stringify(texto)}`);
+    }
+  }
+  for (const campo of ["nombre", "tamano"] as const)
+    assert.ok(validarProducto({ ...productos[0], [campo]: "Caja\nNueva" }));
+});
+
+test("lectura histórica: conserva descripciones con puntuación sin permitir nuevos guardados inválidos", () => {
+  const estado = { productos: semilla, lista: [], siguienteId: 19, versionImagenes: 1 };
+  assert.deepEqual(leerCatalogo(JSON.stringify(estado)).productos, semilla);
+  assert.ok(validarProducto(semilla[0]));
+});
+
+test("contenido: límites coherentes por unidad y unidades indivisibles", () => {
+  for (const [unidad, maximo] of [["g", 50000], ["kg", 50], ["ml", 50000], ["L", 50], ["ud", 1000]] as const) {
+    assert.equal(validarProducto({ ...productos[0], unidad, contenido: maximo }), null);
+    assert.ok(validarProducto({ ...productos[0], unidad, contenido: maximo + 0.1 }));
+    assert.ok(validarProducto({ ...productos[0], unidad, contenido: 0 }));
+    assert.ok(validarProducto({ ...productos[0], unidad, contenido: -1 }));
+    assert.equal(validarProducto({ ...productos[0], unidad, contenido: 1 }), null);
+    if (unidad !== "ud") assert.equal(validarProducto({ ...productos[0], unidad, contenido: 0.5 }), null);
+  }
+  assert.match(validarProducto({ ...productos[0], unidad: "ud", contenido: 0.5 })!, /entero/);
+  assert.ok(validarProducto({ ...productos[0], unidad: "kg", contenido: 100000 }));
+  for (const producto of productos) assert.equal(validarProducto(producto), null, producto.nombre);
+});
+
+test("precios: aplica el máximo a cada una de las cuatro tiendas", () => {
+  for (const tienda of ["lider", "unimarc", "jumbo", "santaIsabel"]) {
+    for (const precio of [1, 500000])
+      assert.equal(validarProducto({ ...productos[0], precios: { [tienda]: precio } }), null);
+    for (const precio of [500001, 100000000, 0, -1, 1.5, Infinity, NaN])
+      assert.ok(validarProducto({ ...productos[0], precios: { [tienda]: precio } }));
+  }
+});
 
 // Estado de partida del test: catálogo semilla, lista de dos IDs y próximo ID 19.
 const inicial: CatalogState = { productos, lista: [1, 2], siguienteId: 19, versionImagenes: 1 };

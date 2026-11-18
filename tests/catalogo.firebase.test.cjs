@@ -17,6 +17,7 @@ function fakeFirestore() {
   let sequence = 0;
   let queue = Promise.resolve();
   let failure;
+  let adminPermitido = true;
   const snap = (ref) => ({
     id: ref.id, exists: () => data.has(ref.path),
     data: () => data.has(ref.path) ? clone(data.get(ref.path)) : undefined,
@@ -68,11 +69,13 @@ function fakeFirestore() {
     require(name) {
       if (name === 'firebase/firestore') return api;
       if (name === '../firebaseconfig') return { db: {} };
+      if (name === './admin') return { exigirAdministrador: async () => { if (!adminPermitido) throw new Error('Se requiere administrador'); } };
       return projectRequire(name);
     },
   });
   return {
     service: exports, data, listeners,
+    permitirAdmin: (valor) => { adminPermitido = valor; },
     fail: (cause) => { failure = cause; },
     emit(name, metadata = {}) {
       const snapshot = query({ path: name });
@@ -83,7 +86,32 @@ function fakeFirestore() {
 }
 const normalize = (v) => JSON.parse(JSON.stringify(v));
 const original = () => ({ productos: clone(productos), lista: [1], siguienteId: 19, versionImagenes: 1 });
-const input = (nombre = 'Producto nuevo') => ({ ...productos[0], nombre });
+const input = (nombre = 'Producto nuevo') => ({ ...productos[0], nombre, descripcion: 'Descripcion del producto' });
+
+test('precios de prueba: conserva la identificación y rechaza tiendas inexistentes o sin precio', async () => {
+  const f = fakeFirestore();
+  await f.service.inicializarCatalogo();
+  const creado = await f.service.guardarProductoRemoto({ ...input(), precios: { jumbo: 1000 }, preciosPrueba: ['jumbo'] });
+  const leido = f.service.leerProductoRemoto(f.data.get('productos/' + creado.id), String(creado.id));
+  assert.deepEqual(normalize(leido.preciosPrueba), ['jumbo']);
+  for (const preciosPrueba of [['desconocida'], ['santaIsabel'], ['jumbo', 'jumbo']]) {
+    await assert.rejects(f.service.guardarProductoRemoto({ ...input(), precios: { jumbo: 1000 }, preciosPrueba }), /prueba/);
+  }
+});
+
+test('administración: impide crear, editar o borrar sin autorización, incluso llamando al servicio directamente', async () => {
+  const f = fakeFirestore();
+  await f.service.inicializarCatalogo();
+  f.permitirAdmin(false);
+  const antes = clone([...f.data.entries()]);
+  await assert.rejects(f.service.guardarProductoRemoto(input()), /administrador/);
+  await assert.rejects(f.service.guardarProductoRemoto(input(), 1), /administrador/);
+  await assert.rejects(f.service.eliminarProductoRemoto(1), /administrador/);
+  assert.deepEqual([...f.data.entries()], antes);
+  assert.equal(f.data.get('configuracion/catalogo').siguienteId, 19);
+  f.permitirAdmin(true);
+  assert.equal((await f.service.guardarProductoRemoto(input())).id, 19);
+});
 
 test('migración: carga 18 productos con precios y cuatro supermercados sin duplicar al repetir', async () => {
   const f = fakeFirestore();
@@ -151,6 +179,24 @@ test('edición: un producto borrado por otro cliente no se vuelve a crear', asyn
   await f.service.eliminarProductoRemoto(1);
   await assert.rejects(f.service.guardarProductoRemoto(input(), 1), /ya no existe/);
   assert.equal(f.data.has('productos/1'), false);
+});
+
+test('validación reforzada: altas y ediciones inválidas conservan documentos y contador', async () => {
+  const f = fakeFirestore();
+  await f.service.inicializarCatalogo();
+  const previo = clone([...f.data.entries()]);
+  for (const cambio of [
+    { nombre: '!!!@@@' }, { descripcion: 'Texto\u0000' }, { tamano: 'Caja\u200b' },
+    { unidad: 'ud', contenido: 0.5 }, { unidad: 'kg', contenido: 51 },
+    { unidad: 'L', contenido: 51 }, { unidad: 'g', contenido: 50001 },
+    { unidad: 'ml', contenido: 50001 }, { unidad: 'ud', contenido: 1001 },
+    { precios: { lider: 500001 } }, { precios: { jumbo: 500001 } },
+  ]) {
+    for (const id of [undefined, 1]) {
+      await assert.rejects(f.service.guardarProductoRemoto({ ...input(), ...cambio }, id));
+      assert.deepEqual([...f.data.entries()], previo);
+    }
+  }
 });
 
 test('contador inconsistente: rechaza el alta sin sobrescribir un producto existente', async () => {
@@ -307,10 +353,10 @@ test('Firestore: persiste precios nuevos, permite retirarlos y no los rellena al
   const f = fakeFirestore();
   await f.service.inicializarCatalogo();
   assert.equal(f.data.get('productos/1').precios.jumbo, undefined);
-  await f.service.guardarProductoRemoto({ ...productos[0], precios: { ...productos[0].precios, jumbo: 800, santaIsabel: 900 } }, 1);
+  await f.service.guardarProductoRemoto({ ...input(productos[0].nombre), precios: { ...productos[0].precios, jumbo: 800, santaIsabel: 900 } }, 1);
   assert.equal(f.data.get('productos/1').precios.jumbo, 800);
   assert.equal(f.service.leerProductoRemoto(f.data.get('productos/1'), '1').precios.santaIsabel, 900);
-  await f.service.guardarProductoRemoto(productos[0], 1);
+  await f.service.guardarProductoRemoto(input(productos[0].nombre), 1);
   assert.equal(Object.hasOwn(f.data.get('productos/1').precios, 'jumbo'), false);
 });
 

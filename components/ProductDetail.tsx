@@ -14,6 +14,8 @@ import ProductImage from "@/components/ProductImage";
 import Header from "@/components/Header";
 import PriceComparison from "@/components/PriceComparison";
 import { mensajeErrorCatalogo } from "@/services/catalogo";
+import AdminAccess from "./AdminAccess";
+import { administracionVigente, cerrarAdministracion } from "@/services/admin";
 
 export default function ProductDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -23,6 +25,7 @@ export default function ProductDetailScreen() {
   // La confirmación de borrado, el estado de operación y el error son estado local de la pantalla.
   const [confirmar, setConfirmar] = useState(false);
   const [administracionAbierta, setAdministracionAbierta] = useState(false);
+  const [solicitarAdmin, setSolicitarAdmin] = useState(false);
   const [ocupado, setOcupado] = useState(false);
   const [error, setError] = useState("");
   // Espera la eliminación persistida; catalog.ts también quita el ID de la lista.
@@ -106,7 +109,13 @@ export default function ProductDetailScreen() {
               accessibilityLabel="Administrar producto"
               accessibilityState={{ expanded: administracionAbierta }}
               onPress={() => {
-                setAdministracionAbierta((abierta) => !abierta);
+                if (administracionAbierta) {
+                  setAdministracionAbierta(false);
+                  void cerrarAdministracion().catch(() => undefined);
+                  setSolicitarAdmin(false);
+                } else {
+                  setSolicitarAdmin(true);
+                }
                 setConfirmar(false);
               }}
               className="mt-5 min-h-12 flex-row items-center justify-between border-t border-slate-100 px-1 pt-3"
@@ -123,7 +132,8 @@ export default function ProductDetailScreen() {
                 color="#64748b"
               />
             </Pressable>
-            {administracionAbierta && (
+            {solicitarAdmin && <AdminAccess onAuthorized={() => { setAdministracionAbierta(true); setSolicitarAdmin(false); }} onCancel={() => setSolicitarAdmin(false)} />}
+            {administracionAbierta && administracionVigente() && (
               <View className="mt-2 gap-2">
                 <Link
                   href={{

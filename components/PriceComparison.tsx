@@ -13,7 +13,7 @@ export default function PriceComparison({ precios, total = false, variante = "ac
         return <View key={tienda.clave} className={variante === "zip" ? `flex-row flex-wrap items-center justify-between gap-2 rounded-2xl px-3 py-2 ${recomendado ? "bg-[#edf4eb]" : "bg-slate-50"}` : "flex-row flex-wrap justify-between gap-2"}>
           {variante === "zip" ? <View className="flex-row items-center gap-2"><StoreBadge supermercado={tienda.nombre} />{total && <Text className="text-xs text-slate-500">total</Text>}</View> : <Text className="text-base text-slate-600">{tienda.nombre}{total ? " total" : ""}</Text>}
           <Text className={variante === "zip" ? `text-sm font-work-medium ${recomendado ? "text-[#286344]" : "text-slate-800"}` : "text-base font-work-medium text-slate-800"}>
-            {typeof precio === "number" ? formatearPesos(precio) : total ? "Faltan precios" : "Sin precio registrado"}
+            {typeof precio === "number" ? formatearPesos(precio) : total ? "Faltan precios" : "No se encontró precio"}
           </Text>
         </View>;
       })}
